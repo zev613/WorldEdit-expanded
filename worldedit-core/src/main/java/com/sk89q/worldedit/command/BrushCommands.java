@@ -38,6 +38,7 @@ import com.sk89q.worldedit.command.tool.brush.HollowCylinderBrush;
 import com.sk89q.worldedit.command.tool.brush.HollowSphereBrush;
 import com.sk89q.worldedit.command.tool.brush.ImageHeightmapBrush;
 import com.sk89q.worldedit.command.tool.brush.MorphBrush;
+import com.sk89q.worldedit.command.tool.brush.NamedShapeBrush;
 import com.sk89q.worldedit.command.tool.brush.OperationFactoryBrush;
 import com.sk89q.worldedit.command.tool.brush.SmoothBrush;
 import com.sk89q.worldedit.command.tool.brush.SnowSmoothBrush;
@@ -56,6 +57,10 @@ import com.sk89q.worldedit.function.factory.BiomeFactory;
 import com.sk89q.worldedit.function.factory.Deform;
 import com.sk89q.worldedit.function.factory.Paint;
 import com.sk89q.worldedit.function.factory.Snow;
+import com.sk89q.worldedit.function.generator.shape.NamedShape;
+import com.sk89q.worldedit.function.generator.shape.ShapeFlags;
+import com.sk89q.worldedit.function.generator.shape.ShapeOrientation;
+import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 import com.sk89q.worldedit.function.mask.BlockTypeMask;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.operation.Operation;
@@ -90,6 +95,7 @@ import org.enginehub.piston.annotation.param.Arg;
 import org.enginehub.piston.annotation.param.ArgFlag;
 import org.enginehub.piston.annotation.param.Switch;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -123,6 +129,53 @@ public class BrushCommands {
     )
     void none(Player player, LocalSession session) throws WorldEditException {
         ToolCommands.setToolNone(player, session, true);
+    }
+
+    @Command(
+        name = "shape",
+        aliases = { "namedshape" },
+        desc = "Choose a named shape brush (heart, star, torus, knot... see //shapes)",
+        descFooter = "The brush size is the shape's radius. Settings are plain numbers, in order or as name=value."
+    )
+    @CommandPermissions("worldedit.brush.shape")
+    public void shapeBrush(Player player, LocalSession session,
+                           @Arg(desc = "The shape (see //shapes)")
+                               NamedShape shape,
+                           @Arg(desc = "The pattern of blocks to set")
+                               Pattern pattern,
+                           @Arg(desc = "The radius of the shape", def = "5")
+                               double radius,
+                           @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
+                               List<String> settings,
+                           @Switch(name = 'h', desc = "Make hollow shapes")
+                               boolean hollow,
+                           @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
+                               double turn,
+                           @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees", def = "0")
+                               double tilt) throws WorldEditException {
+        worldEdit.checkMaxBrushRadius(radius);
+        ShapeParameters parameters;
+        try {
+            ShapeFlags flags = ShapeFlags.parse(settings, "h", "rt");
+            hollow |= flags.has('h');
+            turn = flags.value('r', turn);
+            tilt = flags.value('t', tilt);
+            parameters = ShapeParameters.parse(shape.getParameters(), flags.remaining());
+        } catch (IllegalArgumentException e) {
+            player.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+
+        BrushTool tool = session.forceBrush(
+            player.getItemInHand(HandSide.MAIN_HAND).getType(),
+            new NamedShapeBrush(shape, parameters, new ShapeOrientation(turn, tilt), hollow),
+            "worldedit.brush.shape"
+        );
+        tool.setFill(pattern);
+        tool.setSize(radius);
+
+        player.printInfo(TextComponent.of(shape.getName() + " brush equipped (" + String.format("%.0f", radius) + ")."));
+        ToolCommands.sendUnbindInstruction(player, UNBIND_COMMAND_COMPONENT);
     }
 
     @Command(

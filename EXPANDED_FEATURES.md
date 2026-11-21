@@ -131,6 +131,56 @@ By default it only reports what it *would* delete. Add `--apply --backup path/to
 are chunks players have spent at least `--min-inhabited` ticks in (default 1200 = 1 minute). For the Nether or End, point it at
 `world/DIM-1` or `world/DIM1`.
 
+## Shapes by name (no formulas)
+
+`//shape <name> <pattern> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees]` builds a shape around your
+position by name. You never type a formula: every setting is a plain number with a sensible default.
+
+* **size** is the radius in blocks (like `//sphere`), or `x,y,z` radii to stretch it, e.g. `10,25,10` for something tall.
+* **settings** are numbers, either in order (`//shape star gold_block 10 6`) or by name (`//shape star gold_block 10 points=6`).
+  Anything you leave out uses its default.
+* `-h` hollow, `-b` puts the bottom of the shape at your feet instead of its middle, `-f` turns it to face you,
+  `-r 45` turns it 45° clockwise, `-t 90` tilts it onto its side. Flags can go before or after the settings.
+* `//shapes` lists every shape (click one), and `//shapes <name>` shows its settings, their ranges and an example.
+* `/brush shape <name> <pattern> [radius] [settings]` stamps the shape wherever you click.
+* `//undo` works as usual.
+
+| Group | Shapes (aliases in brackets) |
+|---|---|
+| Solids | `heart`, `star`, `torus` (donut, ring), `egg`, `crescent` (moon), `superellipsoid` (roundcube), `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron` |
+| Building | `arch`, `tower` (twist, prism), `hourglass`, `hyperboloid` (coolingtower) |
+| Knots and curves | `helix` (spring), `knot` (trefoil, torusknot), `dna`, `coil`, `lissajous`, `lorenz` (butterfly) |
+| Surfaces | `saddle` (pringle), `ripple`, `bowl` (dish), `mobius`, `klein`, `seashell` |
+| Nature | `mountain`, `volcano`, `galaxy` |
+| Fractals | `mandelbulb`, `menger` (sponge), `sierpinski` |
+| Lattices | `gyroid`, `schwarzp`, `schwarzd` |
+
+Common `//generate` formulas and their shortcuts:
+
+| Instead of this formula | Use |
+|---|---|
+| `(0.75 - sqrt(x^2 + z^2))^2 + y^2 < 0.25^2` | `//shape torus stone 20 ring=0.25` |
+| `rotate(x, y, 0.5); (0.75 - sqrt(x^2 + z^2))^2 + y^2 < 0.25^2` | `//shape torus stone 20 -t 30` |
+| `y < x^2 - z^2` | `//shape saddle stone 20 solid=1` (leave out `solid=1` for a thin sheet, e.g. a roof) |
+| `y < cos(sqrt(x^2 + z^2)^2 * 10) * 0.2` | `//shape ripple water 20 waves=3 solid=1` |
+| the egg formula | `//shape egg stone 10,15,10` (`pointy=0.4` for a pointier top) |
+| `y = y * 5; (x - cos(y))^2 + (z - sin(y))^2 < 0.1` | `//shape helix stone 10,30,10 turns=4` (`-h` is not needed, it is already a strand) |
+| `(x^2 + (9/4)*z^2 + y^2 - 1)^3 - x^2*y^3 - (9/80)*z^2*y^3 < 0` | `//shape heart red_wool 15 -f` |
+
+More examples: `//shape knot stone 20 loops=3 winds=5`, `//shape tower quartz_block 8,30,8 sides=6 twist=120`,
+`//shape mountain stone 60,35,60 roughness=0.7 seed=12 -b`, `//shape gyroid glass 20 cell=12`,
+`//shape menger stone 27 level=3`, `//shape star gold_block 12 points=6 puff=1 -f`.
+
+**Presets** save a shape with your favourite settings under a new name. Still no formulas, just the shape name and numbers:
+
+| Command | What it does |
+|---|---|
+| `//shapedef save <name> <shape> [settings]` | e.g. `//shapedef save bigknot knot loops=3 winds=5 tube=2`, then `//shape bigknot stone 25`. Settings can still be changed when you use it. |
+| `//shapedef delete <name>` | Delete a preset. |
+| `//shapedef list` | List presets (they also show up in `//shapes`). |
+
+Presets are shared by everyone on the server and saved in `shape-presets.txt` in WorldEdit's config folder.
+
 ## New commands
 
 | Command | What it does |
@@ -170,5 +220,6 @@ On servers with a permissions plugin, the new nodes are:
 (plus `worldedit.jobs.others` to cancel/finish other players' jobs), `worldedit.region.texture`,
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
-`worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`. `//measure` uses `worldedit.selection.size`.
+`worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
