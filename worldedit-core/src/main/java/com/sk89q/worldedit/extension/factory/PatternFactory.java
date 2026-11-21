@@ -23,6 +23,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.extension.factory.parser.pattern.BlockCategoryPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.ClipboardPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.GradientPatternParser;
+import com.sk89q.worldedit.extension.factory.parser.pattern.LayoutPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.RandomPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.RandomStatePatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.SingleBlockPatternParser;
@@ -58,6 +59,7 @@ public final class PatternFactory extends AbstractFactory<Pattern> {
         register(new BlockCategoryPatternParser(worldEdit));
         register(new GradientPatternParser(worldEdit));
         register(new VoronoiPatternParser(worldEdit));
+        register(new LayoutPatternParser(worldEdit));
     }
 
 }
