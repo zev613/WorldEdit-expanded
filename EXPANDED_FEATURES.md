@@ -133,8 +133,8 @@ are chunks players have spent at least `--min-inhabited` ticks in (default 1200 
 
 ## Shapes by name (no formulas)
 
-`//shape <name> <pattern> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees]` builds a shape around your
-position by name. You never type a formula: every setting is a plain number with a sensible default.
+`//shape <name> <pattern> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees] [-m mask] [-a count [-l spacing | -c radius] [-s rise]]`
+builds a shape around your position by name. You never type a formula: every setting is a plain number with a sensible default.
 
 * **size** is the radius in blocks (like `//sphere`), or `x,y,z` radii to stretch it, e.g. `10,25,10` for something tall.
 * **settings** are numbers, either in order (`//shape star gold_block 10 6`) or by name (`//shape star gold_block 10 points=6`).
@@ -144,6 +144,40 @@ position by name. You never type a formula: every setting is a plain number with
 * `//shapes` lists every shape (click one), and `//shapes <name>` shows its settings, their ranges and an example.
 * `/brush shape <name> <pattern> [radius] [settings]` stamps the shape wherever you click.
 * `//undo` works as usual.
+
+**Carving and masks.** Use `air` as the pattern to carve the shape out of terrain instead of building it, and
+`-m <mask>` so that only blocks matching the mask are changed. For example `//shape torus air 20 -m stone` bores a
+ring-shaped tunnel through stone but leaves ores, water and the sky alone, and `//shape heart red_wool 10 -m air`
+builds a heart without replacing anything already there. Any WorldEdit mask works (`-m !air`, `-m #existing`, ...).
+
+**Copies (arrays).** `-a <count>` builds several copies in one go, all in one edit, so a single `//undo` removes them all:
+
+| Flags | What you get |
+|---|---|
+| `-a 5 -l 30` | A line of 5 copies, 30 blocks apart, going the way you face (straight up or down if you look steeply up or down). A negative spacing goes backwards. Without `-l` or `-c` the copies are spaced by the shape's width plus a small gap. |
+| `-a 8 -c 40` | A ring of 8 copies, 40 blocks from your position, starting in front of you. |
+| `-a 12 -c 20 -s 4` | A rising spiral: a ring whose copies climb 4 blocks each. With `-l`, `-s` makes a staircase instead. |
+
+Example: `//shape star gold_block 5 -f -a 6 -c 25 -s 3`. `-l` and `-c` can't be combined, and `-l`, `-c` and `-s`
+need `-a`. At most 1000 copies. When the command is not run by a player (e.g. from the console), lines go east.
+All of these flags may be typed before or after the settings.
+
+**Selecting a shape.** `//selshape <name> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees]`
+(alias `//shapesel`) selects exactly the blocks of the shape, centred on your position (or with its bottom there,
+with `-b`). Then `//set`, `//replace`, `//walls`, `//faces`, `//smooth`, `//count`, `//distr`, `//copy` and other
+selection commands work inside the heart, star or torus: `//selshape heart 12 -f` then `//replace stone red_wool`.
+`-h` selects only the outer layer.
+
+* This is a separate command rather than `//sel shape` because `//sel` only takes the name of a selector,
+  while a shape also needs a size and settings.
+* Clicking with the wand (either button), or `//pos1` / `//pos2`, moves the shape so it is centred on the clicked
+  block. To go back to normal two-point selections, use `//sel cuboid`, which also turns the shape into its
+  bounding box.
+* `//shift` and `//move -s` move the shape selection. `//expand`, `//contract`, `//outset` and `//inset` don't
+  work on it (you get a message); select the shape again with another size instead.
+* `//size` shows the shape, where it is, its bounding box and the exact number of blocks. WorldEdit CUI shows the
+  bounding box.
+* `//sel` clears it until your next wand click, which places the same shape again.
 
 | Group | Shapes (aliases in brackets) |
 |---|---|
@@ -237,5 +271,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
