@@ -181,6 +181,55 @@ More examples: `//shape knot stone 20 loops=3 winds=5`, `//shape tower quartz_bl
 
 Presets are shared by everyone on the server and saved in `shape-presets.txt` in WorldEdit's config folder.
 
+## Warping the selection by name (no formulas)
+
+`//warp <name> [settings] [-c]` reshapes everything in your selection: twist it, bend it, make it wavy, melt it.
+It replaces `//deform` formulas. Settings are plain numbers (angles in degrees) with defaults, given in order
+(`//warp wave 4 20`) or by name (`//warp wave amplitude=4 wavelength=20`). Axis settings take `x`, `y`, `z` or `auto`.
+
+* Each block takes the original block from where the warp says it came from, so leave some empty room around the
+  thing you warp (e.g. select a tower plus a few blocks of air to each side before leaning it).
+* Anything that would come from outside the selection becomes air. `-c` pulls in the real blocks from outside
+  instead, which suits terrain.
+* `//warps` lists the warps, and `//warps <name>` shows the settings, their ranges and an example.
+* `//undo` works as usual.
+
+| Warp (aliases) | Settings (defaults) | Example |
+|---|---|---|
+| `twist` (spin, corkscrew) | `angle` 90: degrees the top turns, clockwise seen from above; the bottom stays put | `//warp twist 180` |
+| `bend` (curve, arc) | `angle` 90, `axis` auto (the longer side, x or z), `vertical` 0 (1 = bend up/down; negative angle makes an arch) | `//warp bend -120 vertical=1` |
+| `taper` (narrow, pinch) | `top` 0.5 and `bottom` 1: width at the top and bottom as a share of the original | `//warp taper 0.2` |
+| `wave` (waves, ripple) | `amplitude` 3 blocks, `wavelength` 16 blocks, `axis` auto (`y` wiggles it sideways going up), `phase` 0 degrees | `//warp wave 4 20 x` |
+| `shear` (lean, slant) | `angle` 30 degrees from upright, `axis` auto (x or z) | `//warp shear 20 z` |
+| `spherize` (round, ball) | `amount` 1 (0 = no change, 1 = a ball that fits the selection, negative = boxier) | `//warp spherize 0.7` |
+| `inflate` (puff, bulge) | `amount` 3 blocks to push out from the middle (negative pulls in) | `//warp inflate 2` |
+| `melt` (droop, sag) | `amount` 0.5, `noise` 0.5 (uneven drips), `spread` 0.5 (puddle at the bottom), `seed` 0 | `//warp melt 0.7 noise=0.9 seed=5` |
+
+To mirror or flip, use the existing `//flip` and `//rotate` on a copy.
+
+## Layout patterns (no formulas)
+
+These patterns mix two or more block patterns in a layout. Inside the brackets list the block patterns (any pattern
+works, including block states such as `oak_log[axis=x]`), then the settings: plain numbers in order, `name=value`, or
+`x`/`y`/`z` for the axis. All but `#bricks` and `#dither` take more than two blocks and cycle through them.
+
+| Pattern | Settings (defaults) | Example |
+|---|---|---|
+| `#stripes[a,b,...]` | `width` 1, `axis` y (y = flat layers, x/z = upright stripes) | `//set #stripes[white_wool,red_wool,2,x]` |
+| `#checker[a,b,...]` | `size` 1 (cubes, so it works on walls and floors) | `//set #checker[black_concrete,white_concrete,2]` |
+| `#rings[a,b,...]` | `width` 2, `axis` y (rings seen from above) | `//set #rings[stone,andesite,diorite,3]` |
+| `#spiral[a,b,...]` | `arms` 1 per block, `curl` 16 (blocks an arm moves out per turn; 0 = spokes), `axis` y | `//set #spiral[white_wool,black_wool,3]` |
+| `#diagonal[a,b,...]` | `width` 1 | `//set #diagonal[yellow_concrete,black_concrete,2]` |
+| `#bricks[brick,mortar]` | `length` 3, `height` 1, `axis` y (rows stack along it; x or z to pave a floor) | `//set #bricks[bricks,smooth_stone,4,2]` |
+| `#dither[a,b]` | `mix` (share of `b`, 0 to 1), `axis` y | `//set #dither[stone,grass_block]` |
+
+* Rings and spirals are centred on the middle of your selection; with no selection, on your position.
+* Bricks run in a running bond: 1-block mortar lines between rows, and each row is shifted by half a brick. They
+  follow both x and z, so the corners of a building line up.
+* `#dither[a,b]` blends evenly from `a` at the bottom of the selection to `b` at the top using an ordered (Bayer)
+  dither; `#dither[a,b,x]` blends along x instead, and `#dither[a,b,0.3]` mixes in a fixed 30% of `b` everywhere
+  (no selection needed).
+
 ## New commands
 
 | Command | What it does |
@@ -221,5 +270,6 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
+`worldedit.region.warp` (`//warp`, `//warps`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.

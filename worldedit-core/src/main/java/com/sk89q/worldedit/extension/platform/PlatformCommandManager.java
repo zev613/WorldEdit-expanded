@@ -83,6 +83,8 @@ import com.sk89q.worldedit.command.ToolUtilCommands;
 import com.sk89q.worldedit.command.ToolUtilCommandsRegistration;
 import com.sk89q.worldedit.command.UtilityCommands;
 import com.sk89q.worldedit.command.UtilityCommandsRegistration;
+import com.sk89q.worldedit.command.WarpCommands;
+import com.sk89q.worldedit.command.WarpCommandsRegistration;
 import com.sk89q.worldedit.command.WorldEditCommands;
 import com.sk89q.worldedit.command.WorldEditCommandsRegistration;
 import com.sk89q.worldedit.command.argument.Arguments;
@@ -98,6 +100,7 @@ import com.sk89q.worldedit.command.argument.EnumConverter;
 import com.sk89q.worldedit.command.argument.FactoryConverter;
 import com.sk89q.worldedit.command.argument.HeightConverter;
 import com.sk89q.worldedit.command.argument.NamedShapeConverter;
+import com.sk89q.worldedit.command.argument.NamedWarpConverter;
 import com.sk89q.worldedit.command.argument.OffsetConverter;
 import com.sk89q.worldedit.command.argument.RegionFactoryConverter;
 import com.sk89q.worldedit.command.argument.RegistryConverter;
@@ -245,6 +248,7 @@ public final class PlatformCommandManager {
         BooleanConverter.register(commandManager);
         EntityRemoverConverter.register(commandManager);
         NamedShapeConverter.register(commandManager);
+        NamedWarpConverter.register(commandManager);
         RegionFactoryConverter.register(commandManager);
         WorldConverter.register(commandManager);
         SideEffectConverter.register(commandManager);
@@ -460,6 +464,11 @@ public final class PlatformCommandManager {
             "Save shapes with your own settings under a new name",
             ShapePresetCommandsRegistration.builder(),
             new ShapePresetCommands()
+        );
+        this.registration.register(
+            commandManager,
+            WarpCommandsRegistration.builder(),
+            new WarpCommands()
         );
         this.registration.register(
             commandManager,
