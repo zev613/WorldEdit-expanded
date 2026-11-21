@@ -21,9 +21,14 @@ package com.sk89q.worldedit.function.generator.shape;
 
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.pattern.Pattern;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector3;
+
+import java.util.Iterator;
+import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Builds named shapes into an {@link EditSession}.
@@ -64,28 +69,38 @@ public final class ShapeGenerator {
      */
     public static int build(EditSession editSession, BlockVector3 position, Pattern pattern, VoxelGrid voxels,
                             boolean bottom) throws MaxChangedBlocksException {
-        BlockVector3 origin = position;
-        if (bottom && voxels.count() > 0) {
-            origin = origin.subtract(0, voxels.lowestY(), 0);
-        }
-        int[] changed = {0};
-        MaxChangedBlocksException[] failure = {null};
-        BlockVector3 base = origin;
-        voxels.forEach(offset -> {
-            if (failure[0] != null) {
-                return;
-            }
-            try {
-                if (editSession.setBlock(base.add(offset), pattern)) {
-                    changed[0]++;
+        return build(editSession, List.of(position), pattern, voxels, bottom, null);
+    }
+
+    /**
+     * Build copies of a shape, all in the same edit.
+     *
+     * @param editSession the edit session
+     * @param positions where to build each copy
+     * @param pattern the blocks to use
+     * @param voxels the voxels from {@link #voxelize}
+     * @param bottom if true, the lowest layer of the shape goes at the position instead of its middle
+     * @param mask if not null, only blocks matching this mask are changed
+     * @return the number of blocks changed
+     * @throws MaxChangedBlocksException if too many blocks would be changed
+     */
+    public static int build(EditSession editSession, List<BlockVector3> positions, Pattern pattern, VoxelGrid voxels,
+                            boolean bottom, @Nullable Mask mask) throws MaxChangedBlocksException {
+        int changed = 0;
+        int lift = bottom && voxels.count() > 0 ? -voxels.lowestY() : 0;
+        for (BlockVector3 position : positions) {
+            BlockVector3 origin = position.add(0, lift, 0);
+            Iterator<BlockVector3> offsets = voxels.offsets();
+            while (offsets.hasNext()) {
+                BlockVector3 target = origin.add(offsets.next());
+                if (mask != null && !mask.test(target)) {
+                    continue;
                 }
-            } catch (MaxChangedBlocksException e) {
-                failure[0] = e;
+                if (editSession.setBlock(target, pattern)) {
+                    changed++;
+                }
             }
-        });
-        if (failure[0] != null) {
-            throw failure[0];
         }
-        return changed[0];
+        return changed;
     }
 }
