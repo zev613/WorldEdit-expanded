@@ -79,6 +79,8 @@ public abstract class LocalConfiguration {
     public boolean navigationUseGlass = true;
     public String navigationWand = "minecraft:compass";
     public int navigationWandMaxDistance = 50;
+    /** How far /jumpto (and the navigation wand, up to its own limit) looks, in blocks. */
+    public int jumptoMaxDistance = 2048;
     public int scriptTimeout = 3000;
     public int calculationTimeout = 100;
     public int maxCalculationTimeout = 300;

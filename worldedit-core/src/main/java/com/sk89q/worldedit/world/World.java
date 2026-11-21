@@ -47,6 +47,7 @@ import com.sk89q.worldedit.world.generation.TreeType;
 import com.sk89q.worldedit.world.weather.WeatherType;
 
 import java.nio.file.Path;
+import java.util.OptionalInt;
 import java.util.Set;
 import javax.annotation.Nullable;
 
@@ -307,6 +308,33 @@ public interface World extends Extent, Keyed {
      */
     default boolean generateFeature(ConfiguredFeatureType type, EditSession editSession, BlockVector3 position) {
         return false;
+    }
+
+    /**
+     * Whether the chunk at the given chunk coordinates has been generated, i.e. it is
+     * loaded or saved on disk. Reading blocks of a chunk that has not been generated
+     * may generate it, which is slow.
+     *
+     * <p>Platforms that cannot tell return {@code true}.</p>
+     *
+     * @param chunkX the chunk x coordinate
+     * @param chunkZ the chunk z coordinate
+     * @return true if the chunk exists
+     */
+    default boolean isChunkGenerated(int chunkX, int chunkZ) {
+        return true;
+    }
+
+    /**
+     * Estimate the height of the terrain at a column from the world generator, without
+     * generating anything. This ignores trees and structures.
+     *
+     * @param x the block x coordinate
+     * @param z the block z coordinate
+     * @return the y of the first free block above the generated terrain, or empty if unknown
+     */
+    default OptionalInt estimateSurfaceHeight(int x, int z) {
+        return OptionalInt.empty();
     }
 
     /**

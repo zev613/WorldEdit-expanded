@@ -181,6 +181,22 @@ More examples: `//shape knot stone 20 loops=3 winds=5`, `//shape tower quartz_bl
 
 Presets are shared by everyone on the server and saved in `shape-presets.txt` in WorldEdit's config folder.
 
+## Long-distance /jumpto
+
+`/jumpto` (and right-clicking with the navigation compass) now reaches anything you can see, up to 2048 blocks away
+by default, instead of stopping at 300 blocks.
+
+* It follows your crosshair block by block, so it can't slip through a thin wall or corner.
+* Chunks that aren't loaded but already exist are read from disk. Chunks that have **never been generated**
+  (for example far-away terrain drawn by a distant-terrain mod such as Distant Horizons) aren't generated just to
+  look through them. Instead the world generator's terrain height is used to find where your crosshair meets the
+  ground, and only the chunk you land in is generated. This ignores trees and buildings there, because they don't
+  exist yet. On Bukkit/Paper, never-generated chunks are looked through, since there's no way to ask the generator
+  for the height.
+* Set the range with `jumpto-max-distance` in `worldedit.properties` (or `navigation.jumpto-max-distance` in
+  `config.yml`). The compass still uses its own `nav-wand-distance` (default 50), so raise that too if you want
+  the compass to reach as far.
+
 ## New commands
 
 | Command | What it does |

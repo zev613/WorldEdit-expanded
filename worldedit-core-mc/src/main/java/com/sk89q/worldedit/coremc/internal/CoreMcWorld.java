@@ -99,6 +99,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -123,6 +124,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -649,6 +651,29 @@ public final class CoreMcWorld extends AbstractWorld {
             .getChunk(position.x() >> 4, position.z() >> 4)
             .getBlockState(platform.getAdapter().toBlockPos(position));
         return platform.getAdapter().fromNativeBlockState(mcState);
+    }
+
+    @Override
+    public boolean isChunkGenerated(int chunkX, int chunkZ) {
+        ServerLevel world = getWorld();
+        if (world.getChunkSource().hasChunk(chunkX, chunkZ)) {
+            return true;
+        }
+        // reads the chunk's status from disk (cached by the game), without loading or generating it
+        return ((AccessorChunkMap) world.getChunkSource().chunkMap).callIsExistingChunkFull(new ChunkPos(chunkX, chunkZ));
+    }
+
+    @Override
+    public OptionalInt estimateSurfaceHeight(int x, int z) {
+        ServerLevel world = getWorld();
+        ServerChunkCache chunkSource = world.getChunkSource();
+        try {
+            return OptionalInt.of(chunkSource.getGenerator().getBaseHeight(
+                x, z, Heightmap.Types.WORLD_SURFACE_WG, world, chunkSource.randomState()));
+        } catch (RuntimeException _) {
+            // some modded generators cannot answer without generating; treat as unknown
+            return OptionalInt.empty();
+        }
     }
 
     @Override
