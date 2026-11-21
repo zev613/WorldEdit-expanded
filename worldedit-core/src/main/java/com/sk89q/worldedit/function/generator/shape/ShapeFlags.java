@@ -33,6 +33,7 @@ public final class ShapeFlags {
 
     private final Set<Character> switches = new HashSet<>();
     private final Map<Character, Double> values = new HashMap<>();
+    private final Map<Character, String> texts = new HashMap<>();
     private final List<String> remaining = new ArrayList<>();
 
     private ShapeFlags() {
@@ -47,6 +48,20 @@ public final class ShapeFlags {
      * @return the result
      */
     public static ShapeFlags parse(List<String> arguments, String switchNames, String valueNames) {
+        return parse(arguments, switchNames, valueNames, "");
+    }
+
+    /**
+     * Pick switches ({@code -h}), flags with a number ({@code -r 45}) and flags with a word
+     * ({@code -w glass}) out of a list of arguments.
+     *
+     * @param arguments the arguments
+     * @param switchNames letters of switches
+     * @param valueNames letters of flags that take a number
+     * @param textNames letters of flags that take a word, such as a block or pattern
+     * @return the result
+     */
+    public static ShapeFlags parse(List<String> arguments, String switchNames, String valueNames, String textNames) {
         ShapeFlags flags = new ShapeFlags();
         for (int i = 0; i < arguments.size(); i++) {
             String argument = arguments.get(i);
@@ -57,7 +72,12 @@ public final class ShapeFlags {
             String letters = argument.substring(1);
             for (int j = 0; j < letters.length(); j++) {
                 char c = letters.charAt(j);
-                if (valueNames.indexOf(c) >= 0) {
+                if (textNames.indexOf(c) >= 0) {
+                    if (j != letters.length() - 1 || i + 1 >= arguments.size()) {
+                        throw new IllegalArgumentException("-" + c + " needs a value after it");
+                    }
+                    flags.texts.put(c, arguments.get(++i));
+                } else if (valueNames.indexOf(c) >= 0) {
                     if (j != letters.length() - 1 || i + 1 >= arguments.size()) {
                         throw new IllegalArgumentException("-" + c + " needs a number after it");
                     }
@@ -96,6 +116,17 @@ public final class ShapeFlags {
      */
     public double value(char name, double fallback) {
         return values.getOrDefault(name, fallback);
+    }
+
+    /**
+     * The word given with a flag.
+     *
+     * @param name the letter
+     * @param fallback the value if the flag was not given
+     * @return the value
+     */
+    public String text(char name, String fallback) {
+        return texts.getOrDefault(name, fallback);
     }
 
     /**

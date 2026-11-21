@@ -54,4 +54,15 @@ class ShapeFlagsTest {
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-r"), "h", "rt"));
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-r", "abc"), "h", "rt"));
     }
+
+    @Test
+    void wordFlagsTakeTheNextArgument() {
+        ShapeFlags flags = ShapeFlags.parse(List.of("10", "-w", "glass", "windows=4", "-s", "oak_stairs[half=top]"),
+            "", "", "ws");
+        assertEquals("glass", flags.text('w', ""));
+        assertEquals("oak_stairs[half=top]", flags.text('s', ""));
+        assertEquals("", flags.text('x', ""));
+        assertEquals(List.of("10", "windows=4"), flags.remaining());
+        assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-w"), "", "", "w"));
+    }
 }

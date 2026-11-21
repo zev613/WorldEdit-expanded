@@ -33,6 +33,8 @@ import com.sk89q.worldedit.command.BiomeCommands;
 import com.sk89q.worldedit.command.BiomeCommandsRegistration;
 import com.sk89q.worldedit.command.BrushCommands;
 import com.sk89q.worldedit.command.BrushCommandsRegistration;
+import com.sk89q.worldedit.command.BuildPartCommands;
+import com.sk89q.worldedit.command.BuildPartCommandsRegistration;
 import com.sk89q.worldedit.command.BuildToolCommands;
 import com.sk89q.worldedit.command.BuildToolCommandsRegistration;
 import com.sk89q.worldedit.command.ChunkCommands;
@@ -385,6 +387,11 @@ public final class PlatformCommandManager {
             commandManager,
             BiomeCommandsRegistration.builder(),
             new BiomeCommands()
+        );
+        this.registration.register(
+            commandManager,
+            BuildPartCommandsRegistration.builder(),
+            new BuildPartCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
