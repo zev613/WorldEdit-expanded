@@ -67,7 +67,7 @@ class ShapeFlagsTest {
     }
 
     @Test
-    void wordFlagsTakeTheNextArgument() {
+    void wordFlagsWithFallbackTakeTheNextArgument() {
         ShapeFlags flags = ShapeFlags.parse(List.of("10", "-w", "glass", "windows=4", "-s", "oak_stairs[half=top]"),
             "", "", "ws");
         assertEquals("glass", flags.text('w', ""));
