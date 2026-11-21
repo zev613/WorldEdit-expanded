@@ -280,6 +280,48 @@ works, including block states such as `oak_log[axis=x]`), then the settings: pla
   dither; `#dither[a,b,x]` blends along x instead, and `#dither[a,b,0.3]` mixes in a fixed 30% of `b` everywhere
   (no selection needed).
 
+## Building parts, block letters and pixel art
+
+Like `//shape`, these take names and plain numbers only (angles in degrees), and everything can be `//undo`ne.
+"Facing you" means the cardinal direction you are looking in (north if a console or script runs the command).
+
+**`//build <part> <pattern> [settings] [-w pattern] [-s stair block]`** builds a ready-made part at your placement
+position. Settings are numbers in order or `name=value`; `//builds` lists the parts (click one) and `//builds <part>`
+shows its settings, ranges and an example. `-w` fills windows, panes and railings; `-s` adds stairs to spiral steps.
+Flags can go before or after the settings.
+
+| Part (aliases) | Settings (defaults) | Notes |
+|---|---|---|
+| `spiralstair` (spiral) | `radius 4`, `height 16` steps, `turns 1`, `pole 1`, `clockwise 1` | First step is in front of you. `-s oak_stairs` puts stairs, facing up the spiral, on the front edge of each step. |
+| `dome` (cupola) | `radius 10`, `thickness 1`, `windows 0` | Half sphere; windows round the bottom, filled with `-w` (default glass). |
+| `tower` (turret) | `radius 4`, `height 20`, `battlements 1`, `windows 4` per floor, `floors 5` (blocks apart, 0 = none), `thickness 1` | Each floor has a hatch by the wall; windows `-w` (default glass, `-w air` for openings). |
+| `wall` (castlewall) | `height 6`, `thickness 2`, `crenellations 1` | Runs from `//pos1` to `//pos2`, following the slope between them. |
+| `column` (pillar) | `radius 1`, `height 10` | Square plinth and abacus, round rings at the base and capital. |
+| `roundwindow` (rosewindow) | `radius 6`, `spokes 8`, `depth 1`, `ring 1` | Upright, centred on the placement position, facing you. Panes `-w` (default glass). |
+| `bridge` (archbridge) | `width 3`, `arch 4`, `railings 1`, `thickness 1` | Arched deck from `//pos1` to `//pos2`; railings use `-w` (e.g. `-w oak_fence`) or the main pattern. |
+
+```
+//build spiralstair oak_planks radius=5 height=24 turns=1.5 -s oak_stairs
+//build tower stone_bricks 6 30 windows=6 -w glass_pane
+//build dome white_concrete radius=12 windows=8 -w light_blue_stained_glass
+//build wall cobblestone height=8 thickness=3        (after //pos1 and //pos2 at the two ends)
+//build bridge oak_planks width=5 arch=6 -w oak_fence (after //pos1 and //pos2 on the two banks)
+//build roundwindow stone_bricks 8 spokes=12 -w red_stained_glass
+```
+
+**`//text <pattern> <text> [-s scale] [-d depth] [-f]`** builds block letters (built-in 5x7 font: A-Z, 0-9 and
+`. , ! ? : ; ' " - + = / \ ( ) [ ] _ # & * < > @ % $ ^ |`; lower case is built as capitals, other characters as `?`).
+The text starts at your placement position and reads left to right as you look at it. `-s 2` makes every pixel
+2x2 blocks, `-d 3` makes the letters 3 blocks thick, `-f` lays it flat on the ground (top of the letters away from you).
+Example: `//text red_wool Welcome! -s 2 -d 2`.
+
+**`//image <file> [width] [-f] [-p palette]`** builds pixel art from a PNG/JPG/GIF/BMP in the `images` folder inside
+WorldEdit's folder (`//image list` shows them). It is resized to `width` blocks wide (default: the image width, at most 128),
+keeping its shape, and each pixel becomes the block whose colour looks closest (CIEDE2000 colour difference); transparent
+pixels are skipped. It stands upright facing you with its bottom-left corner at the placement position; `-f` lays it flat.
+Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
+with commas. Example: `//image logo.png 64 -p wool,concrete`.
+
 ## New commands
 
 | Command | What it does |
@@ -321,5 +363,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
 `worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.

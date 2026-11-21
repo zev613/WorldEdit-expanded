@@ -59,7 +59,7 @@ public final class ShapeFlags {
      * @param arguments the arguments
      * @param switchNames letters of switches
      * @param valueNames letters of flags that take a number
-     * @param textNames letters of flags that take a word, such as a mask
+     * @param textNames letters of flags that take a word, such as a mask, block or pattern
      * @return the result
      */
     public static ShapeFlags parse(List<String> arguments, String switchNames, String valueNames, String textNames) {
@@ -127,6 +127,17 @@ public final class ShapeFlags {
      */
     public Optional<String> text(char name) {
         return Optional.ofNullable(texts.get(name));
+    }
+
+    /**
+     * The word given with a flag.
+     *
+     * @param name the letter
+     * @param fallback the value if the flag was not given
+     * @return the value
+     */
+    public String text(char name, String fallback) {
+        return texts.getOrDefault(name, fallback);
     }
 
     /**
