@@ -34,6 +34,9 @@ import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockTypes;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Places a clipboard with any transform (such as a rotation by 30 degrees) by inverse mapping:
  * every target block looks up the clipboard block that lands on it, so turned copies have no
@@ -66,11 +69,12 @@ public final class TransformedClipboardPlacer {
         BlockVector3 hi = region.getMaximumPoint().subtract(clipboard.getOrigin());
         double[] mins = { Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE };
         double[] maxs = { -Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE };
+        // use the blocks' outer faces, not their centres, so thin clipboards still get a box to fill
         for (int i = 0; i < 8; i++) {
             Vector3 corner = Vector3.at(
-                (i & 1) == 0 ? lo.x() : hi.x(),
-                (i & 2) == 0 ? lo.y() : hi.y(),
-                (i & 4) == 0 ? lo.z() : hi.z());
+                (i & 1) == 0 ? lo.x() - 0.5 : hi.x() + 0.5,
+                (i & 2) == 0 ? lo.y() - 0.5 : hi.y() + 0.5,
+                (i & 4) == 0 ? lo.z() - 0.5 : hi.z() + 0.5);
             Vector3 t = transform.apply(corner);
             double[] values = { t.x(), t.y(), t.z() };
             for (int a = 0; a < 3; a++) {
@@ -78,8 +82,8 @@ public final class TransformedClipboardPlacer {
                 maxs[a] = Math.max(maxs[a], values[a]);
             }
         }
-        this.min = BlockVector3.at(round(mins[0]), round(mins[1]), round(mins[2]));
-        this.max = BlockVector3.at(round(maxs[0]), round(maxs[1]), round(maxs[2]));
+        this.min = BlockVector3.at(round(mins[0] + 0.5), round(mins[1] + 0.5), round(mins[2] + 0.5));
+        this.max = BlockVector3.at(round(maxs[0] - 0.5), round(maxs[1] - 0.5), round(maxs[2] - 0.5));
     }
 
     private static int round(double value) {
@@ -127,26 +131,64 @@ public final class TransformedClipboardPlacer {
      */
     public int place(Extent target, BlockVector3 to) throws WorldEditException {
         int count = 0;
+        Set<BlockVector3> filled = new HashSet<>();
+        Region region = clipboard.getRegion();
+        BlockVector3 origin = clipboard.getOrigin();
+        // 1. every clipboard block lands once, at the block nearest to where it is carried
+        for (BlockVector3 source : region) {
+            Vector3 there = transform.apply(source.subtract(origin).toVector3());
+            BlockVector3 offset = BlockVector3.at(round(there.x()), round(there.y()), round(there.z()));
+            if (filled.add(offset)) {
+                count += put(target, to, offset, source);
+            }
+        }
+        // 2. turning a solid area by an odd angle leaves gaps between those blocks; fill them by
+        // looking back into the clipboard, but only inside solid areas, so thin posts and walls
+        // are not doubled
         for (int x = min.x(); x <= max.x(); x++) {
             for (int y = min.y(); y <= max.y(); y++) {
                 for (int z = min.z(); z <= max.z(); z++) {
                     BlockVector3 offset = BlockVector3.at(x, y, z);
+                    if (filled.contains(offset)) {
+                        continue;
+                    }
                     BlockVector3 source = sourceFor(offset);
-                    if (source == null) {
+                    if (source == null || !isInterior(source)) {
                         continue;
                     }
-                    BaseBlock block = clipboard.getFullBlock(source);
-                    if (block.getBlockType() == BlockTypes.STRUCTURE_VOID
-                        || (ignoreAir && WorldDiff.isAir(block.toImmutableState()))) {
-                        continue;
-                    }
-                    if (target.setBlock(to.add(offset), BlockTransformExtent.transform(block, transform))) {
-                        count++;
-                    }
+                    filled.add(offset);
+                    count += put(target, to, offset, source);
                 }
             }
         }
         return count;
+    }
+
+    /**
+     * Whether the four horizontal neighbours of a clipboard block are in the clipboard and are air
+     * exactly when it is, i.e. the block is inside an area rather than on its edge.
+     */
+    private boolean isInterior(BlockVector3 source) {
+        Region region = clipboard.getRegion();
+        boolean air = WorldDiff.isAir(clipboard.getBlock(source));
+        BlockVector3[] neighbours = {
+            source.add(1, 0, 0), source.add(-1, 0, 0), source.add(0, 0, 1), source.add(0, 0, -1),
+        };
+        for (BlockVector3 neighbour : neighbours) {
+            if (!region.contains(neighbour) || WorldDiff.isAir(clipboard.getBlock(neighbour)) != air) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int put(Extent target, BlockVector3 to, BlockVector3 offset, BlockVector3 source) throws WorldEditException {
+        BaseBlock block = clipboard.getFullBlock(source);
+        if (block.getBlockType() == BlockTypes.STRUCTURE_VOID
+            || (ignoreAir && WorldDiff.isAir(block.toImmutableState()))) {
+            return 0;
+        }
+        return target.setBlock(to.add(offset), BlockTransformExtent.transform(block, transform)) ? 1 : 0;
     }
 
     /**
