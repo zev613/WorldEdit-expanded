@@ -166,7 +166,7 @@ public class SmartSelectionCommands {
                 @Override
                 public boolean test(BlockVector3 vector) {
                     BlockState state = world.getBlock(vector);
-                    return !state.getBlockType().getMaterial().isAir()
+                    return !NaturalBlocks.isAir(state)
                         && (state.getBlockType().getMaterial().isSolid() || !isNatural(state));
                 }
             };
@@ -180,10 +180,10 @@ public class SmartSelectionCommands {
             start = new Start(session.getPlacementPosition(actor), "your placement position (pos1)");
         }
         BlockState startBlock = world.getBlock(start.position());
-        if (startBlock.getBlockType().getMaterial().isAir() || isNatural(startBlock)) {
+        if (NaturalBlocks.isAir(startBlock) || isNatural(startBlock)) {
             actor.printError(TextComponent.of("The start block (" + start.description() + ", "
                 + blockName(world, start.position()) + ") is "
-                + (startBlock.getBlockType().getMaterial().isAir() ? "air" : "natural terrain")
+                + (NaturalBlocks.isAir(startBlock) ? "air" : "natural terrain")
                 + ". " + (actor instanceof Player ? "Look at" : "Set //pos1 on") + " a block of the build."));
             return;
         }
@@ -193,7 +193,7 @@ public class SmartSelectionCommands {
                     return false;
                 }
                 BlockState state = world.getBlock(BlockVector3.at(x, y, z));
-                return !state.getBlockType().getMaterial().isAir() && !isNatural(state);
+                return !NaturalBlocks.isAir(state) && !isNatural(state);
             },
             true, distance, blockLimit());
         if (ground) {
@@ -207,7 +207,8 @@ public class SmartSelectionCommands {
             result = new ConnectedBlockSearch.Result(withGround, result.reachedDistanceLimit(),
                 result.reachedBlockLimit() || withGround.size() >= blockLimit());
         }
-        select(actor, world, session, result, start, "Build", ground ? "with its ground layer" : "", distance, poly);
+        select(actor, world, session, result, start, "Build",
+            "from " + start.position() + (ground ? " with its ground layer" : ""), distance, poly);
     }
 
     @Command(
@@ -232,7 +233,7 @@ public class SmartSelectionCommands {
         List<String> rest;
         try {
             ShapeFlags flags = ShapeFlags.parse(arguments, "", "", "y");
-            heightRange = flags.text('y', heightRange);
+            heightRange = flags.text('y', heightRange == null ? "" : heightRange);
             rest = flags.remaining();
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));
@@ -397,7 +398,7 @@ public class SmartSelectionCommands {
         BlockPosSet blocks = result.blocks();
         BlockVector3 min = blocks.getMinimum();
         BlockVector3 max = blocks.getMaximum();
-        String description = kind.equals("Build") ? "build" + (label.isEmpty() ? "" : " " + label) : label;
+        String description = kind.equals("Build") ? "build " + label : label;
         RegionSelector selector;
         String extra = "";
         if (poly) {
@@ -417,12 +418,12 @@ public class SmartSelectionCommands {
                 return;
             }
             selector = new ShapeRegionSelector(world, blocks.toVoxelGrid(start.position()), start.position(),
-                BlockVector3.ZERO, kind, description);
+                BlockVector3.ZERO, kind, label);
         }
         session.setRegionSelector(world, selector);
         session.dispatchCUISelection(actor);
         actor.printInfo(TextComponent.of(String.format(Locale.ROOT, "Selected %,d blocks (%s) starting at %s, "
-            + "size %s.%s", blocks.size(), description.isEmpty() ? kind.toLowerCase(Locale.ROOT) : description,
+            + "size %s.%s", blocks.size(), description,
             start.description(), size(min, max), extra)));
         if (result.reachedBlockLimit()) {
             actor.printError(TextComponent.of(String.format(Locale.ROOT, "Stopped at the limit of %,d blocks; "

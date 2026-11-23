@@ -19,6 +19,10 @@
 
 package com.sk89q.worldedit.regions.smart;
 
+import com.sk89q.worldedit.world.block.BlockState;
+import com.sk89q.worldedit.world.block.BlockType;
+import com.sk89q.worldedit.world.block.BlockTypes;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -82,6 +86,18 @@ public final class NaturalBlocks {
             id = id.substring(colon + 1);
         }
         return NATURAL.contains(id) || id.endsWith("_ore");
+    }
+
+    /**
+     * Whether a block is air (any kind of air, also on platforms that do not report block materials).
+     *
+     * @param state the block
+     * @return true if air
+     */
+    public static boolean isAir(BlockState state) {
+        BlockType type = state.getBlockType();
+        return type == BlockTypes.AIR || type == BlockTypes.CAVE_AIR || type == BlockTypes.VOID_AIR
+            || type.getMaterial().isAir();
     }
 
     /**

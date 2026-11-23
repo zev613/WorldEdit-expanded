@@ -254,7 +254,7 @@ public final class PolyWalkManager {
         } else {
             minY = path.getLowestY() - GROUND_MARGIN;
             int top = PolyWalkPath.highestBlockInside(outline, path.getLowestY(), world.getMaxY(),
-                (x, y, z) -> !world.getBlock(BlockVector3.at(x, y, z)).getBlockType().getMaterial().isAir(),
+                (x, y, z) -> !NaturalBlocks.isAir(world.getBlock(BlockVector3.at(x, y, z))),
                 MAX_HEIGHT_CHECKS);
             maxY = Math.max(top, path.getHighestY());
         }
