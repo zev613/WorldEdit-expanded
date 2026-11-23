@@ -338,7 +338,7 @@ public final class OvergrowGenerator {
         String[] names = { "north", "south", "east", "west", "up", "down" };
         int[][] dirs = { { 0, 0, -1 }, { 0, 0, 1 }, { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 } };
         return forEachCell(false, (x, y, z) -> {
-            if (!free(x, y, z) || cover(x, y, z, 4) > 4) {
+            if (!free(x, y, z) || cover(x, y, z, 3) > 3) {
                 return 0;
             }
             int walls = 0;
@@ -350,14 +350,15 @@ public final class OvergrowGenerator {
                     }
                 }
             }
-            if (walls < 3 || noise.value(x, y, z) <= 1 - amount || hash(40, x, y, z) >= amount * 0.12) {
+            if (walls < 2 || noise.value(x, y, z) <= 1 - amount || hash(40, x, y, z) >= amount * 0.1) {
                 return 0;
             }
             AgeBlock block = AgeBlock.of("glow_lichen");
+            // on a wall or ceiling, not just lying on the floor
             boolean any = false;
             for (int i = 0; i < 6; i++) {
                 boolean face = grid.isFull(x + dirs[i][0], y + dirs[i][1], z + dirs[i][2]);
-                any |= face;
+                any |= face && i < 5;
                 block = block.with(names[i], String.valueOf(face));
             }
             return any && place(x, y, z, block) ? 1 : 0;

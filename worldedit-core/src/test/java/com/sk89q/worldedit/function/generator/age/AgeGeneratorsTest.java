@@ -331,7 +331,7 @@ class AgeGeneratorsTest {
         Map<String, AgeBlock> after = overgrown(5, 0.9, true);
         Set<String> kinds = new HashSet<>();
         after.values().forEach(b -> kinds.add(b.path()));
-        for (String kind : List.of("vine", "oak_leaves", "moss_carpet", "short_grass", "hanging_roots")) {
+        for (String kind : List.of("vine", "oak_leaves", "moss_carpet", "short_grass", "hanging_roots", "glow_lichen")) {
             assertTrue(kinds.contains(kind), kind + " missing from " + kinds);
         }
         Map<String, AgeBlock> green = overgrown(5, 0.9, false);

@@ -365,7 +365,7 @@ public final class RuinGenerator {
         AgeNoise pile = new AgeNoise(seed, 8, 3);
         int count = 0;
         for (Fallen f : fallen) {
-            if (hash(9, f.x(), f.y(), f.z()) >= 0.5) {
+            if (hash(9, f.x(), f.y(), f.z()) >= 0.6) {
                 continue;
             }
             String id = AgeMaterials.rubble(f.block(), hash(10, f.x(), f.y(), f.z()), world);
@@ -399,7 +399,7 @@ public final class RuinGenerator {
                 || (below.path().endsWith("_slab") && !"double".equals(below.get("type")))) {
                 continue;
             }
-            int cap = groundAt(x, z) + (pile.value(x, 0, z) > 0.55 ? 1 : 0);
+            int cap = groundAt(x, z) + (pile.value(x, 0, z) > 0.45 ? 1 : 0);
             if (y > cap) {
                 continue;
             }
