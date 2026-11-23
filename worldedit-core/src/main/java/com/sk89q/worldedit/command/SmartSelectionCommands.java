@@ -40,6 +40,7 @@ import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector3;
 import com.sk89q.worldedit.regions.RegionSelector;
 import com.sk89q.worldedit.regions.selector.Polygonal2DRegionSelector;
+import com.sk89q.worldedit.regions.selector.RegionSelectorType;
 import com.sk89q.worldedit.regions.selector.ShapeRegionSelector;
 import com.sk89q.worldedit.regions.smart.BlockPosSet;
 import com.sk89q.worldedit.regions.smart.ConnectedBlockSearch;
@@ -417,8 +418,10 @@ public class SmartSelectionCommands {
                     + "exactly (" + size(min, max) + "). Use -p for a polygon, or a smaller distance."));
                 return;
             }
+            // clicking afterwards starts a fresh selection of the kind the player was using
+            RegionSelectorType previous = ShapeRegionSelector.typeOf(session.getRegionSelector(world));
             selector = new ShapeRegionSelector(world, blocks.toVoxelGrid(start.position()), start.position(),
-                BlockVector3.ZERO, kind, label);
+                BlockVector3.ZERO, kind, label).switchOnClick(previous);
         }
         session.setRegionSelector(world, selector);
         session.dispatchCUISelection(actor);

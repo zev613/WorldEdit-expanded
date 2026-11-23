@@ -394,8 +394,9 @@ still goes around every block where possible; otherwise the message says how man
 Both commands stop at `maxDistance` blocks from the start along any axis, and at a total number of blocks. Defaults and
 hard caps come from the config: `max-connected-selection-distance` (256) and `max-connected-selection-blocks`
 (2,000,000) (in `worldedit.yml` under `limits:`, or `worldedit.properties`). Blocks already visited are kept in a
-compact bit set (16x16x16 sections), so even large selections need little memory. Wand clicks or `//pos1` move the
-exact selection like a `//selshape`.
+compact bit set (16x16x16 sections), so even large selections need little memory. After a `//selconnected` or
+`//selbuild`, your next wand click (or `//pos1`/`//pos2`) starts a fresh selection of the type you were using before,
+so if you were in `//sel poly` mode you are straight back to clicking polygon points.
 
 **`//polywalk`** makes a `//sel poly` by walking around a build:
 
