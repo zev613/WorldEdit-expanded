@@ -22,6 +22,7 @@ package com.sk89q.worldedit.command;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.StyleLibraryHolder;
@@ -87,7 +88,8 @@ public class StyleCommands {
     @CommandPermissions("worldedit.generation.skyscraper")
     public void info(Actor actor,
                      @Arg(desc = "The style")
-                         String name) {
+                         HintedArguments.StyleName styleName) {
+        String name = styleName.value();
         StyleLibrary library = StyleLibraryHolder.get();
         BuildingStyle style = library.find(name).orElse(null);
         if (style == null) {
@@ -120,9 +122,10 @@ public class StyleCommands {
                      @Arg(desc = "The new style's name")
                          String name,
                      @Arg(desc = "The style it is based on")
-                         String base,
+                         HintedArguments.StyleName baseName,
                      @Arg(desc = "Blocks to change, as role=block", def = "", variable = true)
                          List<String> changes) throws WorldEditException {
+        String base = baseName.value();
         StyleLibrary library = StyleLibraryHolder.get();
         BuildingStyle.Overrides overrides;
         try {
@@ -153,7 +156,8 @@ public class StyleCommands {
     @CommandPermissions("worldedit.generation.skyscraper.style")
     public void delete(Actor actor,
                        @Arg(desc = "The style")
-                           String name) {
+                           HintedArguments.StyleName styleName) {
+        String name = styleName.value();
         StyleLibrary library = StyleLibraryHolder.get();
         if (library.isBuiltin(name)) {
             actor.printError(TextComponent.of("Built-in styles can't be deleted."));

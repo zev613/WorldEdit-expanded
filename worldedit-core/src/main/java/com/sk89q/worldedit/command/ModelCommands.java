@@ -25,6 +25,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
@@ -112,7 +113,9 @@ public class ModelCommands {
                      @Switch(name = 'c', desc = "Put the axis on the edge of the drawing nearest to you")
                          boolean nearestEdge,
                      @Switch(name = 'r', desc = "Remove the original drawing")
-                         boolean removeDrawing) throws WorldEditException {
+                         boolean removeDrawing,
+                       @Switch(name = 't', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         Map<BlockVector3, BaseBlock> blocks;
         FlatDrawing<BaseBlock> drawing;
         Map<BlockVector3, BaseBlock> model;
@@ -120,7 +123,7 @@ public class ModelCommands {
         try {
             blocks = readDrawing(editSession, region);
             drawing = FlatDrawing.of(blocks, null, false);
-            BlockVector3 position = session.getPlacementPosition(actor);
+            BlockVector3 position = CrosshairPlacement.placement(session, actor, atCrosshair);
             int standing = drawing.getUAxis().of(position);
             axisU = standing;
             if (nearestEdge) {

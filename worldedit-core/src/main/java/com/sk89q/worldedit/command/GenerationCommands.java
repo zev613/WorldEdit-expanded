@@ -25,6 +25,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
@@ -86,8 +87,10 @@ public class GenerationCommands {
                     @Radii(2)
                         List<Double> radii,
                     @Arg(desc = "The height of the cylinder", def = "1")
-                        int height) throws WorldEditException {
-        return cyl(actor, session, editSession, pattern, radii, height, true);
+                        int height,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        return cyl(actor, session, editSession, pattern, radii, height, true, atCrosshair);
     }
 
     @Command(
@@ -105,7 +108,9 @@ public class GenerationCommands {
                    @Arg(desc = "The height of the cylinder", def = "1")
                        int height,
                    @Switch(name = 'h', desc = "Make a hollow cylinder")
-                       boolean hollow) throws WorldEditException {
+                       boolean hollow,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         double radiusX;
         double radiusZ;
         switch (radii.size()) {
@@ -124,7 +129,7 @@ public class GenerationCommands {
         worldEdit.checkMaxRadius(radiusZ);
         worldEdit.checkMaxRadius(height);
 
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeCylinder(pos, pattern, radiusX, radiusZ, height, !hollow);
         actor.printInfo(TranslatableComponent.of("worldedit.cyl.created", TextComponent.of(affected)));
         return affected;
@@ -147,8 +152,9 @@ public class GenerationCommands {
                    @Switch(name = 'h', desc = "Make a hollow cone")
                        boolean hollow,
                    @Arg(desc = "Thickness of the hollow cone", def = "1")
-                       double thickness
-    ) throws WorldEditException {
+                       double thickness,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         double radiusX;
         double radiusZ;
         switch (radii.size()) {
@@ -167,7 +173,7 @@ public class GenerationCommands {
         worldEdit.checkMaxRadius(radiusZ);
         worldEdit.checkMaxRadius(height);
 
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeCone(pos, pattern, radiusX, radiusZ, height, !hollow, thickness);
         actor.printInfo(TranslatableComponent.of("worldedit.cone.created", TextComponent.of(affected)));
         return affected;
@@ -186,8 +192,10 @@ public class GenerationCommands {
                        @Radii(3)
                            List<Double> radii,
                        @Switch(name = 'r', desc = "Raise the bottom of the sphere to the placement position")
-                           boolean raised) throws WorldEditException {
-        return sphere(actor, session, editSession, pattern, radii, raised, true);
+                           boolean raised,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        return sphere(actor, session, editSession, pattern, radii, raised, true, atCrosshair);
     }
 
     @Command(
@@ -205,7 +213,9 @@ public class GenerationCommands {
                       @Switch(name = 'r', desc = "Raise the bottom of the sphere to the placement position")
                           boolean raised,
                       @Switch(name = 'h', desc = "Make a hollow sphere")
-                          boolean hollow) throws WorldEditException {
+                          boolean hollow,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         double radiusX;
         double radiusY;
         double radiusZ;
@@ -226,7 +236,7 @@ public class GenerationCommands {
         worldEdit.checkMaxRadius(radiusY);
         worldEdit.checkMaxRadius(radiusZ);
 
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         if (raised) {
             pos = pos.add(0, (int) radiusY, 0);
         }
@@ -259,7 +269,9 @@ public class GenerationCommands {
                      @Arg(desc = "Thickness of the helix strand", def = "0")
                          double thickness,
                      @Switch(name = 'h', desc = "Generate only a shell")
-                         boolean shell) throws WorldEditException {
+                         boolean shell,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         double radiusX;
         double radiusZ;
         switch (radii.size()) {
@@ -278,7 +290,7 @@ public class GenerationCommands {
         worldEdit.checkMaxRadius(radiusZ);
         worldEdit.checkMaxRadius(thickness);
 
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeHelix(pos, pattern, radiusX, radiusZ, height, turns, thickness, !shell);
         actor.printInfo(TextComponent.of(affected + " blocks changed."));
         return affected;
@@ -302,8 +314,10 @@ public class GenerationCommands {
                       @Arg(desc = "The number of turns/revolutions", def = "1")
                           double turns,
                       @Arg(desc = "Thickness of the helix strand", def = "1")
-                          double thickness) throws WorldEditException {
-        return helix(actor, session, editSession, pattern, radii, height, turns, thickness, true);
+                          double thickness,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        return helix(actor, session, editSession, pattern, radii, height, turns, thickness, true, atCrosshair);
     }
 
     @Command(
@@ -321,12 +335,14 @@ public class GenerationCommands {
                      @Arg(desc = "The minor radius (tube thickness)")
                          double minorRadius,
                      @Switch(name = 'h', desc = "Generate only a shell")
-                         boolean shell) throws WorldEditException {
+                         boolean shell,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         checkCommandArgument(majorRadius > 0, "Major radius must be > 0");
         checkCommandArgument(minorRadius > 0, "Minor radius must be > 0");
         worldEdit.checkMaxRadius(majorRadius + minorRadius);
 
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeTorus(pos, pattern, majorRadius, minorRadius, !shell);
         actor.printInfo(TextComponent.of(affected + " blocks changed."));
         return affected;
@@ -345,8 +361,10 @@ public class GenerationCommands {
                       @Arg(desc = "The major radius (distance from center to tube center)")
                           double majorRadius,
                       @Arg(desc = "The minor radius (tube thickness)")
-                          double minorRadius) throws WorldEditException {
-        return torus(actor, session, editSession, pattern, majorRadius, minorRadius, true);
+                          double minorRadius,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        return torus(actor, session, editSession, pattern, majorRadius, minorRadius, true, atCrosshair);
     }
 
     @Command(
@@ -361,11 +379,13 @@ public class GenerationCommands {
                          @Arg(desc = "The type of forest", def = "tree")
                              TreeType type,
                          @Arg(desc = "The density of the forest, between 0 and 100", def = "5")
-                             double density) throws WorldEditException {
+                             double density,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         checkCommandArgument(0 <= density && density <= 100, "Density must be between 0 and 100");
         worldEdit.checkMaxRadius(size);
         density /= 100;
-        int affected = editSession.makeForest(session.getPlacementPosition(actor), size, density, type);
+        int affected = editSession.makeForest(CrosshairPlacement.placement(session, actor, atCrosshair), size, density, type);
         actor.printInfo(TranslatableComponent.of("worldedit.forestgen.created", TextComponent.of(affected)));
         return affected;
     }
@@ -378,9 +398,11 @@ public class GenerationCommands {
     @Logging(POSITION)
     public int pumpkins(Actor actor, LocalSession session, EditSession editSession,
                         @Arg(desc = "The size of the patch", def = "10")
-                            int size) throws WorldEditException {
+                            int size,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         worldEdit.checkMaxRadius(size);
-        int affected = editSession.makePumpkinPatches(session.getPlacementPosition(actor), size);
+        int affected = editSession.makePumpkinPatches(CrosshairPlacement.placement(session, actor, atCrosshair), size);
         actor.printInfo(TranslatableComponent.of("worldedit.pumpkins.created", TextComponent.of(affected)));
         return affected;
     }
@@ -393,8 +415,10 @@ public class GenerationCommands {
     @Logging(POSITION)
     public int feature(Actor actor, LocalSession session, EditSession editSession,
                        @Arg(desc = "The feature")
-                       ConfiguredFeatureType feature) throws WorldEditException {
-        if (editSession.getWorld().generateFeature(feature, editSession, session.getPlacementPosition(actor))) {
+                       ConfiguredFeatureType feature,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        if (editSession.getWorld().generateFeature(feature, editSession, CrosshairPlacement.placement(session, actor, atCrosshair))) {
             actor.printInfo(TranslatableComponent.of("worldedit.feature.created"));
         } else {
             actor.printError(TranslatableComponent.of("worldedit.feature.failed"));
@@ -410,8 +434,10 @@ public class GenerationCommands {
     @Logging(POSITION)
     public int structure(Actor actor, LocalSession session, EditSession editSession,
                         @Arg(desc = "The structure")
-                        StructureType feature) throws WorldEditException {
-        if (editSession.getWorld().generateStructure(feature, editSession, session.getPlacementPosition(actor))) {
+                        StructureType feature,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        if (editSession.getWorld().generateStructure(feature, editSession, CrosshairPlacement.placement(session, actor, atCrosshair))) {
             actor.printInfo(TranslatableComponent.of("worldedit.structure.created"));
         } else {
             actor.printError(TranslatableComponent.of("worldedit.structure.failed"));
@@ -429,8 +455,10 @@ public class GenerationCommands {
                              @Arg(desc = "The pattern of blocks to set")
                                  Pattern pattern,
                              @Arg(desc = "The size of the pyramid")
-                                 int size) throws WorldEditException {
-        return pyramid(actor, session, editSession, pattern, size, true);
+                                 int size,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        return pyramid(actor, session, editSession, pattern, size, true, atCrosshair);
     }
 
     @Command(
@@ -445,9 +473,11 @@ public class GenerationCommands {
                        @Arg(desc = "The size of the pyramid")
                            int size,
                        @Switch(name = 'h', desc = "Make a hollow pyramid")
-                           boolean hollow) throws WorldEditException {
+                           boolean hollow,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         worldEdit.checkMaxRadius(size);
-        BlockVector3 pos = session.getPlacementPosition(actor);
+        BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makePyramid(pos, pattern, size, !hollow);
         if (actor instanceof Player player) {
             player.findFreePosition();

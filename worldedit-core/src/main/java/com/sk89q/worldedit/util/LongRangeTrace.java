@@ -56,8 +56,10 @@ public final class LongRangeTrace {
      * @param estimated true if the hit is on terrain that has not been generated yet,
      *     so its height comes from the world generator
      * @param distance the distance from the eye to the hit
+     * @param before the block the line of sight passed through just before the hit, i.e. the
+     *     space in front of the face that was hit
      */
-    public record Hit(BlockVector3 position, boolean estimated, double distance) {
+    public record Hit(BlockVector3 position, boolean estimated, double distance, BlockVector3 before) {
     }
 
     private final World world;
@@ -157,18 +159,20 @@ public final class LongRangeTrace {
         int maxWorldY = world.getMaxY();
         double travelled = 0;
         boolean first = true;
+        BlockVector3 previous = BlockVector3.at(x, y, z);
         while (travelled <= maxDistance) {
             if ((y < minY && stepY <= 0) || (y > maxWorldY && stepY >= 0)) {
                 // left the world and not coming back
                 return null;
             }
             if (!first && y >= minY && y <= maxWorldY) {
-                Hit hit = test(x, y, z, travelled);
+                Hit hit = test(x, y, z, travelled, previous);
                 if (hit != null) {
                     return hit;
                 }
             }
             first = false;
+            previous = BlockVector3.at(x, y, z);
             if (maxX < maxY && maxX < maxZ) {
                 x += stepX;
                 travelled = maxX;
@@ -191,15 +195,15 @@ public final class LongRangeTrace {
     }
 
     @Nullable
-    private Hit test(int x, int y, int z, double distance) {
+    private Hit test(int x, int y, int z, double distance, BlockVector3 before) {
         if (isGenerated(x >> 4, z >> 4)) {
             BlockVector3 position = BlockVector3.at(x, y, z);
-            return solid.test(position) ? new Hit(position, false, distance) : null;
+            return solid.test(position) ? new Hit(position, false, distance, before) : null;
         }
         OptionalInt height = estimate(x, z);
         // the generator's height is the first free block above the surface
         if (height.isPresent() && y < height.getAsInt()) {
-            return new Hit(BlockVector3.at(x, y, z), true, distance);
+            return new Hit(BlockVector3.at(x, y, z), true, distance, before);
         }
         return null;
     }

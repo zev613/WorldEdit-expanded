@@ -25,6 +25,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.command.util.ShapeLibraryHolder;
 import com.sk89q.worldedit.entity.Player;
@@ -144,16 +145,19 @@ public class ShapeCommands {
                      @ArgFlag(name = 's', desc = "Raise each copy by this many blocks (a spiral with -c)", def = "0")
                          double rise,
                      @ArgFlag(name = 'm', desc = "Only change blocks matching this mask, e.g. stone")
-                         Mask mask) throws WorldEditException {
+                         Mask mask,
+                       @Switch(name = 'x', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         Vector3 radii;
         ShapeParameters parameters;
         ShapeArray array;
         try {
             // flags typed after the settings end up in the settings list, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(settings, "hbf", "rtalcs", "m");
+            ShapeFlags flags = ShapeFlags.parse(settings, "hbfx", "rtalcs", "m");
             hollow |= flags.has('h');
             bottom |= flags.has('b');
             faceMe |= flags.has('f');
+            atCrosshair |= flags.has('x');
             turn = flags.value('r', turn);
             tilt = flags.value('t', tilt);
             copies = flags.value('a', copies);
@@ -182,7 +186,7 @@ public class ShapeCommands {
         if (voxels == null) {
             return 0;
         }
-        BlockVector3 position = session.getPlacementPosition(actor);
+        BlockVector3 position = CrosshairPlacement.placement(session, actor, atCrosshair);
         List<BlockVector3> positions = new ArrayList<>();
         for (BlockVector3 offset : array.offsets(facing(actor))) {
             positions.add(position.add(offset));
@@ -222,15 +226,18 @@ public class ShapeCommands {
                             @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                                 double turn,
                             @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees (90 = on its side)", def = "0")
-                                double tilt) throws WorldEditException {
+                                double tilt,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         Vector3 radii;
         ShapeParameters parameters;
         List<String> settingWords;
         try {
-            ShapeFlags flags = ShapeFlags.parse(settings, "hbf", "rt");
+            ShapeFlags flags = ShapeFlags.parse(settings, "hbfc", "rt");
             hollow |= flags.has('h');
             bottom |= flags.has('b');
             faceMe |= flags.has('f');
+            atCrosshair |= flags.has('c');
             turn = flags.value('r', turn);
             tilt = flags.value('t', tilt);
             radii = parseSize(size);
@@ -252,7 +259,7 @@ public class ShapeCommands {
             actor.printError(TextComponent.of("That shape has no blocks at this size; try making it bigger."));
             return;
         }
-        BlockVector3 position = session.getPlacementPosition(actor);
+        BlockVector3 position = CrosshairPlacement.placement(session, actor, atCrosshair);
         BlockVector3 anchorOffset = bottom ? BlockVector3.at(0, -voxels.lowestY(), 0) : BlockVector3.ZERO;
         String description = shape.getName() + " " + formatSize(radii)
             + (settingWords.isEmpty() ? "" : " " + String.join(" ", settingWords));

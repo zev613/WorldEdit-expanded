@@ -26,6 +26,7 @@ import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
@@ -184,7 +185,9 @@ public class ClipboardCommands {
                       @Switch(name = 'f', desc = "With -c: fill gaps under columns with their bottom block")
                           boolean fillBelow,
                       @Switch(name = 'w', desc = "With -c: rest on water surfaces instead of under water")
-                          boolean waterIsGround) throws WorldEditException {
+                          boolean waterIsGround,
+                       @Switch(name = 't', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
 
         ClipboardHolder holder = (clipName != null && !clipName.isEmpty())
                 ? NamedClipboardStore.getDefault().getNamedClipboard(session, actor, clipName)
@@ -193,7 +196,7 @@ public class ClipboardCommands {
         Region region = clipboard.getRegion();
         List<Component> messages = Lists.newArrayList();
 
-        BlockVector3 to = atOrigin ? clipboard.getOrigin() : session.getPlacementPosition(actor);
+        BlockVector3 to = atOrigin ? clipboard.getOrigin() : CrosshairPlacement.placement(session, actor, atCrosshair);
         if (conform) {
             ConformPasteHelper.paste(actor, world, session, editSession, holder, to, smoothRadius, waterIsGround,
                 ignoreAirBlocks, pasteStructureVoid, fillBelow, sourceMask, selectPasted, onlySelect,

@@ -24,8 +24,10 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.command.util.StyleLibraryHolder;
 import com.sk89q.worldedit.entity.Player;
@@ -48,6 +50,7 @@ import com.sk89q.worldedit.world.block.BlockTypes;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
+import org.enginehub.piston.annotation.param.Switch;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -125,12 +128,16 @@ public class SkyscraperCommands {
     @Logging(PLACEMENT)
     public int skyscraper(Actor actor, World world, LocalSession session, EditSession editSession,
                           @Arg(desc = "The building style (see //style list)")
-                              String styleName,
+                              HintedArguments.StyleName styleArg,
                           @Arg(desc = "The number of stories")
                               int stories,
                           @Arg(desc = "Settings (name=value or numbers in order) and role=block changes",
                               def = "", variable = true)
-                              List<String> settings) throws WorldEditException {
+                              List<HintedArguments.SkyscraperSetting> settingWords,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        String styleName = styleArg.value();
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SkyscraperSetting::value);
         BuildingStyle style = StyleLibraryHolder.get().find(styleName).orElse(null);
         if (style == null) {
             actor.printError(TextComponent.of("Unknown style '" + styleName + "'. Use //style list to see them."));
@@ -140,9 +147,10 @@ public class SkyscraperCommands {
             actor.printError(TextComponent.of("Stories must be between 1 and " + Skyscraper.MAX_STORIES));
             return 0;
         }
+        atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
         Skyscraper skyscraper;
         try {
-            BuildingStyle.Overrides overrides = BuildingStyle.splitOverrides(settings);
+            BuildingStyle.Overrides overrides = BuildingStyle.splitOverrides(CrosshairPlacement.withoutFlag(settings, 'c'));
             style = style.withOverrides(overrides.overrides());
             List<String> numbers = NamedSettings.replaceNames(overrides.remaining(), "shape",
                 Skyscraper.SHAPE_NAMES);
@@ -156,7 +164,7 @@ public class SkyscraperCommands {
         }
         worldEdit.checkMaxRadius(Math.max(skyscraper.width(), skyscraper.depth()) / 2.0);
 
-        BlockVector3 origin = session.getPlacementPosition(actor);
+        BlockVector3 origin = CrosshairPlacement.placement(session, actor, atCrosshair);
         int top = origin.y() + skyscraper.roofY();
         if (top > world.getMaxY()) {
             actor.printError(TextComponent.of("That would be " + skyscraper.roofY() + " blocks tall, but the world "

@@ -26,6 +26,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
@@ -139,7 +140,9 @@ public class ClipboardToolCommands {
                        @Switch(name = 'a', desc = "Skip air blocks")
                            boolean ignoreAir,
                        @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
-                           String clipName) throws WorldEditException {
+                           String clipName,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         if (radius != null) {
             WorldEdit.getInstance().checkMaxRadius(radius);
         }
@@ -154,7 +157,7 @@ public class ClipboardToolCommands {
             actor.printError(TextComponent.of(e.getMessage()));
             return;
         }
-        BlockVector3 to = session.getPlacementPosition(actor);
+        BlockVector3 to = CrosshairPlacement.placement(session, actor, atCrosshair);
         int changed = 0;
         for (int i = 0; i < layout.getCount(); i++) {
             changed += new TransformedClipboardPlacer(clipboard, layout.transform(i), ignoreAir).place(editSession, to);
@@ -264,7 +267,9 @@ public class ClipboardToolCommands {
                      @ArgFlag(name = 'y', desc = "Blocks to raise each row", def = "0")
                          int rise,
                      @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
-                         String clipName) throws WorldEditException {
+                         String clipName,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         int spacingFwd = spacingForward < 0 ? spacingRight : spacingForward;
         Clipboard clipboard;
         BlockVector3 anchor;
@@ -281,7 +286,7 @@ public class ClipboardToolCommands {
             anchor = region.getMinimumPoint();
         } else {
             clipboard = TransformedClipboardPlacer.flatten(holder(session, actor, clipName));
-            anchor = session.getPlacementPosition(actor)
+            anchor = CrosshairPlacement.placement(session, actor, atCrosshair)
                 .add(clipboard.getRegion().getMinimumPoint().subtract(clipboard.getOrigin()));
         }
         BlockVector3 size = clipboard.getDimensions();

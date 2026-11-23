@@ -25,6 +25,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
@@ -266,7 +267,9 @@ public class LandscapeCommands {
                      @ArgFlag(name = 'l', desc = "The maximum length of the river", def = "256")
                          int maxLength,
                      @ArgFlag(name = 'b', desc = "The pattern for the river bed and levees", def = "sand")
-                         Pattern bed) throws WorldEditException {
+                         Pattern bed,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         checkCommandArgument(width >= 1, "Width must be at least 1");
         checkCommandArgument(depth >= 1, "Depth must be at least 1");
         checkCommandArgument(maxLength >= 1 && maxLength <= 4096, "Maximum length must be between 1 and 4096");
@@ -274,7 +277,7 @@ public class LandscapeCommands {
         worldEdit.checkMaxRadius(depth);
         worldEdit.checkMaxRadius(maxLength / 2.0);
 
-        BlockVector3 start = session.getPlacementPosition(actor);
+        BlockVector3 start = CrosshairPlacement.placement(session, actor, atCrosshair);
         int scanMaxY = Math.min(world.getMaxY(), start.y() + 32);
         ExtentTerrainSampler terrain = new ExtentTerrainSampler(editSession, world.getMinY(), scanMaxY);
         if (terrain.isWater(start.x(), start.z())) {
@@ -463,7 +466,9 @@ public class LandscapeCommands {
                      @ArgFlag(name = 'r', desc = "Random seed", def = "")
                          String seed,
                      @Switch(name = 'd', desc = "Let the leaves decay naturally (by default they are made persistent)")
-                         boolean decay) throws WorldEditException {
+                         boolean decay,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         checkCommandArgument(height >= 3 && height <= 256, "Height must be between 3 and 256");
         checkCommandArgument(branches >= 0 && branches <= 64, "Branches must be between 0 and 64");
         checkCommandArgument(leafRadius >= 1 && leafRadius <= 32, "Leaf radius must be between 1 and 32");
@@ -477,7 +482,7 @@ public class LandscapeCommands {
         ParametricTree.Skeleton skeleton = ParametricTree.generate(random, height, branches, leafRadius, lean, thickness);
         ParametricTree.Voxels voxels = ParametricTree.rasterize(skeleton, random);
 
-        BlockVector3 base = session.getPlacementPosition(actor);
+        BlockVector3 base = CrosshairPlacement.placement(session, actor, atCrosshair);
         int changed = 0;
         for (Map.Entry<BlockVector3, ParametricTree.Axis> log : voxels.logs().entrySet()) {
             BlockVector3 pos = base.add(log.getKey());

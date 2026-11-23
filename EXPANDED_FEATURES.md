@@ -36,6 +36,28 @@ Remove any other WorldEdit jar first. Use the `-dist` jar, not `-dist-slim` (an 
 Other platforms work the same way, e.g. `./gradlew :worldedit-fabric:runClient` for Fabric.
 `./gradlew build` builds everything, with jars in `worldedit-<platform>/build/libs`.
 
+## Building where you aim, and tab-completion hints
+
+**Build at your crosshair.** Add `-c` to a generator command and it builds where your crosshair points instead of
+where you stand: in the air block just in front of the surface you are looking at (the closest spot to the crosshair
+that isn't inside the ground), up to `jumpto-max-distance` (2048) blocks away, using the same long-range sight line as
+`/jumpto`. Where `-c` already meant something else, the letter is different:
+
+| Flag | Commands |
+|---|---|
+| `-c` | `//sphere` `//hsphere` `//cyl` `//hcyl` `//cone` `//pyramid` `//hpyramid` `//helix` `//hhelix` `//torus` `//htorus` `/forestgen` `/pumpkins` `//feature` `//structure`, `//selshape`, `//build` `//text` `//image`, `//skyscraper`, `//rock` `//crystals` `//giantmushroom` `//roots` `//coral`, `//combine add\|cut\|keep` (the first shape decides where it is built), `//radial` `//grid`, `//river` `//ptree` |
+| `-t` | `//paste` (its `-c` is conform), `//lathe` (its `-c` is the nearest-edge axis) |
+| `-x` | `//shape` (its `-c` is ring copies and `-t` is tilt) |
+
+The flag works before or after the settings, e.g. `//skyscraper art_deco 30 -c` or `//rock stone 5 -c`. Only players
+can aim; from the console you get a message.
+
+**Hints while typing.** `//build` and `//builds` suggest the part names; `//skyscraper`, `//style info`, `//style save`
+(base style) and `//style delete` suggest the style names (including saved ones); and the settings of `//build` and
+`//skyscraper` are suggested too, e.g. `//skyscraper art_deco 20 cr` offers `crown=flat`, `crown=spire`,
+`crown=stepped` and `crown=pyramid`, and the style roles (`window=`, `trim=`, ...). Shape names (`//shape`) and warp
+names (`//warp`) already tab-complete.
+
 ## Edit preview
 
 `//preview` turns preview mode on (run it again to turn it off). While it's on, your edits (commands *and* brushes)

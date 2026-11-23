@@ -25,6 +25,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
@@ -106,8 +107,10 @@ public class CombineCommands {
                     @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                         double turn,
                     @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees", def = "0")
-                        double tilt) throws WorldEditException {
-        addStep(actor, session, Operation.ADD, shape, size, settings, offset, turn, tilt);
+                        double tilt,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        addStep(actor, session, Operation.ADD, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
     @Command(
@@ -130,8 +133,10 @@ public class CombineCommands {
                     @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                         double turn,
                     @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees", def = "0")
-                        double tilt) throws WorldEditException {
-        addStep(actor, session, Operation.CUT, shape, size, settings, offset, turn, tilt);
+                        double tilt,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        addStep(actor, session, Operation.CUT, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
     @Command(
@@ -154,15 +159,19 @@ public class CombineCommands {
                      @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                          double turn,
                      @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees", def = "0")
-                         double tilt) throws WorldEditException {
-        addStep(actor, session, Operation.KEEP, shape, size, settings, offset, turn, tilt);
+                         double tilt,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        addStep(actor, session, Operation.KEEP, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
     private void addStep(Actor actor, LocalSession session, Operation operation, NamedShape shape, List<Double> size,
-                         List<String> settings, String offset, double turn, double tilt) throws WorldEditException {
+                         List<String> settings, String offset, double turn, double tilt, boolean atCrosshair)
+            throws WorldEditException {
         CompoundShape compound = compound(actor);
         try {
-            ShapeFlags flags = ShapeFlags.parse(settings, "", "rt", "o");
+            ShapeFlags flags = ShapeFlags.parse(settings, "c", "rt", "o");
+            atCrosshair |= flags.has('c');
             turn = flags.value('r', turn);
             tilt = flags.value('t', tilt);
             String offsetText = flags.text('o', offset == null ? "" : offset);
@@ -189,7 +198,8 @@ public class CombineCommands {
             if (tilt != 0) {
                 description.append(" -t ").append(ShapeParameter.format(tilt));
             }
-            BlockVector3 position = compound.getSteps().isEmpty() ? session.getPlacementPosition(actor) : BlockVector3.ZERO;
+            BlockVector3 position = compound.getSteps().isEmpty()
+                ? CrosshairPlacement.placement(session, actor, atCrosshair) : BlockVector3.ZERO;
             compound.add(new CompoundShape.Step(operation, voxels, shift, description.toString()), position);
             int count = compound.getSteps().size();
             actor.printInfo(TextComponent.of("Step " + count + ": " + operation.label() + " " + description

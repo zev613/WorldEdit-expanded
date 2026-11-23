@@ -64,6 +64,8 @@ class LongRangeTraceTest {
         LongRangeTrace.Hit hit = new LongRangeTrace(world, mask)
             .trace(Vector3.at(0.5, 64.5, 0.5), Vector3.at(1, 0, 0), 2048);
         assertEquals(BlockVector3.at(1500, 64, 0), hit.position());
+        // the space just in front of the face that was hit, where -c builds
+        assertEquals(BlockVector3.at(1499, 64, 0), hit.before());
         assertFalse(hit.estimated());
         assertEquals(1499.5, hit.distance(), 1e-6);
     }

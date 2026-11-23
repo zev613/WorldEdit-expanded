@@ -26,6 +26,7 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.input.ParserContext;
@@ -50,6 +51,7 @@ import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
 import org.enginehub.piston.annotation.param.ArgFlag;
+import org.enginehub.piston.annotation.param.Switch;
 
 import java.util.List;
 import java.util.Map;
@@ -117,8 +119,9 @@ public class NatureCommands {
     }
 
     private static int place(Actor actor, LocalSession session, EditSession editSession, NatureModel model,
-                             Map<Integer, Pattern> patterns, String what, long seed) throws WorldEditException {
-        BlockVector3 origin = session.getPlacementPosition(actor);
+                             Map<Integer, Pattern> patterns, String what, long seed, boolean atCrosshair)
+            throws WorldEditException {
+        BlockVector3 origin = CrosshairPlacement.placement(session, actor, atCrosshair);
         int[] changed = new int[1];
         MaxChangedBlocksException[] failure = new MaxChangedBlocksException[1];
         model.forEach((x, y, z, part) -> {
@@ -163,14 +166,17 @@ public class NatureCommands {
                         List<Double> size,
                     @Arg(desc = "Settings: roughness (0-1), seed; numbers in order or name=value",
                         def = "", variable = true)
-                        List<String> settings) throws WorldEditException {
-        Request request = request(actor, size, settings, RockGenerator.PARAMETERS, null, null);
+                        List<String> settings,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
+        Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), RockGenerator.PARAMETERS, null, null);
         if (request == null) {
             return 0;
         }
         NatureModel model = RockGenerator.generate(request.size(), request.parameters(), request.seed());
         return place(actor, session, editSession, model, Map.of(RockGenerator.ROCK, pattern),
-            "a rock " + request.size(), request.seed());
+            "a rock " + request.size(), request.seed(), atCrosshair);
     }
 
     @Command(
@@ -190,14 +196,17 @@ public class NatureCommands {
                             List<Double> size,
                         @Arg(desc = "Settings: count, seed; numbers in order or name=value",
                             def = "", variable = true)
-                            List<String> settings) throws WorldEditException {
-        Request request = request(actor, size, settings, CrystalGenerator.PARAMETERS, null, null);
+                            List<String> settings,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
+        Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), CrystalGenerator.PARAMETERS, null, null);
         if (request == null) {
             return 0;
         }
         NatureModel model = CrystalGenerator.generate(request.size(), request.parameters(), request.seed());
         return place(actor, session, editSession, model, Map.of(CrystalGenerator.CRYSTAL, pattern),
-            "a crystal cluster " + request.size(), request.seed());
+            "a crystal cluster " + request.size(), request.seed(), atCrosshair);
     }
 
     @Command(
@@ -221,12 +230,15 @@ public class NatureCommands {
                              @Arg(desc = "Settings: type (round, flat, bell), seed", def = "", variable = true)
                                  List<String> settings,
                              @ArgFlag(name = 'u', desc = "The pattern for the underside of the cap")
-                                 String undersideInput) throws WorldEditException {
+                                 String undersideInput,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         String undersideText;
         List<String> remaining;
         try {
             // flags typed after the settings end up in the settings list, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(settings, "", "", "u");
+            ShapeFlags flags = ShapeFlags.parse(settings, "c", "", "u");
+            atCrosshair |= flags.has('c');
             undersideText = flags.text('u', undersideInput == null ? "" : undersideInput);
             remaining = flags.remaining();
         } catch (IllegalArgumentException e) {
@@ -248,7 +260,7 @@ public class NatureCommands {
                 GiantMushroomGenerator.UNDERSIDE, underside);
         String type = GiantMushroomGenerator.TYPES.get(request.parameters().getInt("type")).split("\\|", -1)[0];
         return place(actor, session, editSession, model, patterns, "a " + type + " giant mushroom " + request.size(),
-            request.seed());
+            request.seed(), atCrosshair);
     }
 
     @Command(
@@ -267,14 +279,17 @@ public class NatureCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Settings: count, seed; numbers in order or name=value", def = "", variable = true)
-                         List<String> settings) throws WorldEditException {
-        Request request = request(actor, size, settings, RootGenerator.PARAMETERS, null, null);
+                         List<String> settings,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
+        Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), RootGenerator.PARAMETERS, null, null);
         if (request == null) {
             return 0;
         }
         NatureModel model = RootGenerator.generate(request.size(), request.parameters(), request.seed());
         return place(actor, session, editSession, model, Map.of(RootGenerator.ROOT, pattern),
-            "roots " + request.size(), request.seed());
+            "roots " + request.size(), request.seed(), atCrosshair);
     }
 
     @Command(
@@ -293,14 +308,17 @@ public class NatureCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Settings: type (branching, brain, fan, tubes), seed", def = "", variable = true)
-                         List<String> settings) throws WorldEditException {
-        Request request = request(actor, size, settings, CoralGenerator.PARAMETERS, "type", CoralGenerator.TYPES);
+                         List<String> settings,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
+        Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), CoralGenerator.PARAMETERS, "type", CoralGenerator.TYPES);
         if (request == null) {
             return 0;
         }
         NatureModel model = CoralGenerator.generate(request.size(), request.parameters(), request.seed());
         String type = CoralGenerator.TYPES.get(request.parameters().getInt("type")).split("\\|", -1)[0];
         return place(actor, session, editSession, model, Map.of(CoralGenerator.CORAL, pattern),
-            type + " coral " + request.size(), request.seed());
+            type + " coral " + request.size(), request.seed(), atCrosshair);
     }
 }

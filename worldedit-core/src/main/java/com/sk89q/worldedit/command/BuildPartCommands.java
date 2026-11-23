@@ -23,8 +23,10 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.input.ParserContext;
@@ -142,15 +144,19 @@ public class BuildPartCommands {
     @Logging(PLACEMENT)
     public int build(Actor actor, World world, LocalSession session, EditSession editSession,
                      @Arg(desc = "The part (see //builds)")
-                         String partName,
+                         HintedArguments.PartName partArg,
                      @Arg(desc = "The pattern of blocks to build with")
                          Pattern pattern,
                      @Arg(desc = "Settings: numbers in order, or name=value", def = "", variable = true)
-                         List<String> settings,
+                         List<HintedArguments.PartSetting> settingWords,
                      @ArgFlag(name = 'w', desc = "The pattern for windows, panes and railings")
                          String detailInput,
                      @ArgFlag(name = 's', desc = "A stair block for the front edge of spiral staircase steps")
-                         String stairInput) throws WorldEditException {
+                         String stairInput,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
+        String partName = partArg.value();
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.PartSetting::value);
         BuildingPart part = BuildingParts.find(partName).orElse(null);
         if (part == null) {
             actor.printError(TextComponent.of("Unknown part '" + partName + "'. Use //builds to see them all."));
@@ -161,7 +167,8 @@ public class BuildPartCommands {
         String stairText;
         try {
             // flags typed after the settings end up in the settings list, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(settings, "", "", "ws");
+            ShapeFlags flags = ShapeFlags.parse(settings, "c", "", "ws");
+            atCrosshair |= flags.has('c');
             detailText = flags.text('w', detailInput == null ? "" : detailInput);
             stairText = flags.text('s', stairInput == null ? "" : stairInput);
             parameters = ShapeParameters.parse(part.parameters(), flags.remaining());
@@ -195,7 +202,7 @@ public class BuildPartCommands {
             end = cuboid.getPos2().subtract(origin);
             worldEdit.checkMaxRadius(Math.hypot(end.x(), end.z()) / 2);
         } else {
-            origin = session.getPlacementPosition(actor);
+            origin = CrosshairPlacement.placement(session, actor, atCrosshair);
         }
 
         BuildPlan plan;
@@ -238,7 +245,8 @@ public class BuildPartCommands {
     @CommandPermissions("worldedit.generation.build")
     public void builds(Actor actor,
                        @Arg(desc = "A part to show the settings of", def = "")
-                           String name) {
+                           HintedArguments.PartName partArg) {
+        String name = partArg == null ? null : partArg.value();
         if (name != null && !name.isEmpty()) {
             BuildingParts.find(name).ifPresentOrElse(
                 part -> printInfo(actor, part),
@@ -334,12 +342,15 @@ public class BuildPartCommands {
                     @ArgFlag(name = 'd', desc = "How thick the letters are", def = "1")
                         int depth,
                     @Switch(name = 'f', desc = "Lay the text flat on the ground")
-                        boolean flat) throws WorldEditException {
+                        boolean flat,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         BlockText text;
         try {
             // flags typed after the text end up in the text, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(words, "f", "sd");
+            ShapeFlags flags = ShapeFlags.parse(words, "fc", "sd");
             flat |= flags.has('f');
+            atCrosshair |= flags.has('c');
             scale = (int) flags.value('s', scale);
             depth = (int) flags.value('d', depth);
             checkCommandArgument(scale >= 1 && scale <= 16, "Scale must be between 1 and 16");
@@ -351,7 +362,7 @@ public class BuildPartCommands {
         }
         worldEdit.checkMaxRadius(text.width() * scale / 2.0);
 
-        BlockVector3 origin = session.getPlacementPosition(actor);
+        BlockVector3 origin = CrosshairPlacement.placement(session, actor, atCrosshair);
         FacingPlane plane = new FacingPlane(facingOf(actor), flat);
         int changed = 0;
         for (BlockVector3 offset : text.blocks(plane, scale, depth)) {
@@ -394,7 +405,9 @@ public class BuildPartCommands {
                      @Switch(name = 'f', desc = "Lay the picture flat on the ground")
                          boolean flat,
                      @ArgFlag(name = 'p', desc = "The palette of blocks to use", def = "all")
-                         String palette) throws WorldEditException {
+                         String palette,
+                       @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
+                           boolean atCrosshair) throws WorldEditException {
         File dir = getImageDir();
         if (filename.equalsIgnoreCase("list") && width == null && !new File(dir, "list.png").exists()) {
             listImages(actor, dir);
@@ -424,7 +437,7 @@ public class BuildPartCommands {
         }
         worldEdit.checkMaxRadius(art.height() / 2.0);
 
-        BlockVector3 origin = session.getPlacementPosition(actor);
+        BlockVector3 origin = CrosshairPlacement.placement(session, actor, atCrosshair);
         FacingPlane plane = new FacingPlane(facingOf(actor), flat);
         Map<String, BlockType> types = new HashMap<>();
         int changed = 0;

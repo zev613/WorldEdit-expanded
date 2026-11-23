@@ -123,6 +123,7 @@ import com.sk89q.worldedit.command.argument.EntityRemoverConverter;
 import com.sk89q.worldedit.command.argument.EnumConverter;
 import com.sk89q.worldedit.command.argument.FactoryConverter;
 import com.sk89q.worldedit.command.argument.HeightConverter;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.argument.NamedShapeConverter;
 import com.sk89q.worldedit.command.argument.NamedWarpConverter;
 import com.sk89q.worldedit.command.argument.OffsetConverter;
@@ -272,6 +273,7 @@ public final class PlatformCommandManager {
         BooleanConverter.register(commandManager);
         EntityRemoverConverter.register(commandManager);
         NamedShapeConverter.register(commandManager);
+        HintedArguments.register(commandManager);
         NamedWarpConverter.register(commandManager);
         RegionFactoryConverter.register(commandManager);
         WorldConverter.register(commandManager);
