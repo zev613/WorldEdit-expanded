@@ -55,6 +55,8 @@ import com.sk89q.worldedit.command.GenerationCommands;
 import com.sk89q.worldedit.command.GenerationCommandsRegistration;
 import com.sk89q.worldedit.command.HeightmapCommands;
 import com.sk89q.worldedit.command.HeightmapCommandsRegistration;
+import com.sk89q.worldedit.command.HistoryBrowserCommands;
+import com.sk89q.worldedit.command.HistoryBrowserCommandsRegistration;
 import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
@@ -465,6 +467,11 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            HistoryBrowserCommandsRegistration.builder(),
+            new HistoryBrowserCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
             LandscapeCommandsRegistration.builder(),
             new LandscapeCommands(worldEdit)
         );
@@ -667,6 +674,7 @@ public final class PlatformCommandManager {
         Actor actor = platformManager.createProxyActor(event.getActor());
         LocalSession session = worldEdit.getSessionManager().get(actor);
         Request.request().setSession(session);
+        Request.request().setDescription(event.getArguments());
         if (actor instanceof Entity entity && entity.getExtent() instanceof World world) {
             Request.request().setWorld(world);
         }

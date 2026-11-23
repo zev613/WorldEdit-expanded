@@ -82,6 +82,7 @@ import com.sk89q.worldedit.function.visitor.NonRisingVisitor;
 import com.sk89q.worldedit.function.visitor.RecursiveVisitor;
 import com.sk89q.worldedit.function.visitor.RegionVisitor;
 import com.sk89q.worldedit.history.UndoContext;
+import com.sk89q.worldedit.history.browser.HistoryEntryInfo;
 import com.sk89q.worldedit.history.changeset.BlockOptimizedHistory;
 import com.sk89q.worldedit.history.changeset.ChangeSet;
 import com.sk89q.worldedit.internal.expression.Expression;
@@ -223,6 +224,7 @@ public class EditSession implements Extent, AutoCloseable {
     private @Nullable ChangeSetExtent changeSetExtent;
     private final List<WatchdogTickingExtent> watchdogExtents = new ArrayList<>(2);
     private final @Nullable EditPreview preview;
+    private @Nullable HistoryEntryInfo historyInfo;
 
     private final Extent bypassReorderHistory;
     private final Extent bypassHistory;
@@ -1014,6 +1016,25 @@ public class EditSession implements Extent, AutoCloseable {
             }
         }
         close();
+    }
+
+    /**
+     * Get the short description of this edit kept in the undo history ({@code //history}).
+     *
+     * @return the description, or {@code null} if it was never remembered
+     */
+    @Nullable
+    public HistoryEntryInfo getHistoryInfo() {
+        return historyInfo;
+    }
+
+    /**
+     * Set the short description of this edit kept in the undo history.
+     *
+     * @param historyInfo the description
+     */
+    public void setHistoryInfo(@Nullable HistoryEntryInfo historyInfo) {
+        this.historyInfo = historyInfo;
     }
 
     /**

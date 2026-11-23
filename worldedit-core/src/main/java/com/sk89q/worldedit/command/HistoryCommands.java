@@ -19,15 +19,12 @@
 
 package com.sk89q.worldedit.command;
 
-import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
-import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
-import com.sk89q.worldedit.extent.inventory.BlockBag;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
@@ -90,19 +87,7 @@ public class HistoryCommands {
             HistoryPersistenceHelper.selectiveUndo(actor, undoSession, times, mask);
             return;
         }
-        int timesUndone = 0;
-        for (int i = 0; i < times; ++i) {
-            BlockBag blockBag = actor instanceof Player player ? undoSession.getBlockBag(player) : null;
-            EditSession undone = undoSession.undo(blockBag, actor);
-            if (undone != null) {
-                timesUndone++;
-                worldEdit.flushBlockBag(actor, undone);
-            } else if (HistoryPersistenceHelper.undoFromDisk(actor, undoSession, blockBag)) {
-                timesUndone++;
-            } else {
-                break;
-            }
-        }
+        int timesUndone = HistoryPersistenceHelper.undo(worldEdit, actor, undoSession, times);
         if (timesUndone > 0) {
             actor.printInfo(TranslatableComponent.of("worldedit.undo.undone", TextComponent.of(timesUndone)));
         } else {
@@ -131,25 +116,7 @@ public class HistoryCommands {
                 return;
             }
         }
-        int timesRedone = 0;
-        for (int i = 0; i < times; ++i) {
-            BlockBag blockBag = actor instanceof Player player ? redoSession.getBlockBag(player) : null;
-            Boolean diskRedo = HistoryPersistenceHelper.redoFromDisk(actor, redoSession, blockBag);
-            if (diskRedo != null) {
-                if (!diskRedo) {
-                    break;
-                }
-                timesRedone++;
-                continue;
-            }
-            EditSession redone = redoSession.redo(blockBag, actor);
-            if (redone != null) {
-                timesRedone++;
-                worldEdit.flushBlockBag(actor, redone);
-            } else {
-                break;
-            }
-        }
+        int timesRedone = HistoryPersistenceHelper.redo(worldEdit, actor, redoSession, times);
         if (timesRedone > 0) {
             actor.printInfo(TranslatableComponent.of("worldedit.redo.redone", TextComponent.of(timesRedone)));
         } else {
