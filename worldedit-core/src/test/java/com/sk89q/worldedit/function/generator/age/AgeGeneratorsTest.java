@@ -75,6 +75,7 @@ class AgeGeneratorsTest {
             world.fill(5, y, 6 + i, 20, y, 15 - i, AgeBlock.of("stone_bricks"));
         }
         world.fill(5, 16, 10, 20, 16, 11, AgeBlock.of("cut_copper"));
+        world.fill(9, 3, 15, 16, 3, 15, AgeBlock.of("cut_copper"));
         // porch roof (an overhang) in front of the door
         world.fill(10, 6, 3, 14, 6, 5, AgeBlock.of("cobblestone_slab").with("type", "top"));
         world.fill(10, 6, 3, 14, 6, 3, AgeBlock.of("cobblestone"));
@@ -101,7 +102,7 @@ class AgeGeneratorsTest {
     }
 
     private static int[] parse(String key) {
-        String[] parts = key.split(",");
+        String[] parts = key.split(",", -1);
         return new int[] { Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]) };
     }
 

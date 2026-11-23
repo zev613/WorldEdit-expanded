@@ -224,8 +224,8 @@ public final class OvergrowGenerator {
                         continue;
                     }
                     // only on something: the ground or the layer of leaves below
-                    if (grid.isAir(x, y - 1, z) || !grid.isFull(x, y - 1, z) && !AgeMaterials.isLeaves(
-                        grid.get(x, y - 1, z))) {
+                    if (grid.isAir(x, y - 1, z)
+                        || (!grid.isFull(x, y - 1, z) && !AgeMaterials.isLeaves(grid.get(x, y - 1, z)))) {
                         continue;
                     }
                     if (place(x, y, z, block)) {

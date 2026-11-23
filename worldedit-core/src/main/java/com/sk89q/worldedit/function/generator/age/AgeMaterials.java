@@ -76,7 +76,7 @@ public final class AgeMaterials {
     private static final String[] DECOR_SUFFIXES = {
         "_door", "_trapdoor", "_bed", "_carpet", "_button", "_pressure_plate", "_sign", "_hanging_sign",
         "_wall_sign", "_wall_hanging_sign", "_banner", "_wall_banner", "_candle", "_head", "_wall_head",
-        "_skull", "_wall_skull", "_lantern", "_torch", "_chain"
+        "_skull", "_wall_skull", "_lantern", "_torch", "_chain",
     };
 
     /**
@@ -88,7 +88,7 @@ public final class AgeMaterials {
         "enchanting_table", "hopper", "cauldron", "composter", "brewing_stand", "daylight_detector",
         "stonecutter", "pointed_dripstone", "amethyst_cluster", "_bud", "dirt_path", "farmland", "conduit",
         "grindstone", "bell", "candle", "head", "skull", "pot", "sniffer_egg", "turtle_egg", "dragon_egg",
-        "sea_pickle", "heavy_core", "shelf"
+        "sea_pickle", "heavy_core", "shelf",
     };
 
     private static final Set<String> CRACKABLE = Set.of(

@@ -72,7 +72,7 @@ public record AgeBlock(String id, Map<String, String> properties) {
         }
         Map<String, String> props = new TreeMap<>();
         String inner = trimmed.substring(open + 1, trimmed.endsWith("]") ? trimmed.length() - 1 : trimmed.length());
-        for (String pair : inner.split(",")) {
+        for (String pair : inner.split(",", -1)) {
             int eq = pair.indexOf('=');
             if (eq > 0) {
                 props.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());

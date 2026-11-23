@@ -180,7 +180,7 @@ final class AgeGrid {
                     if (!inside(x, y, z) || !isStructural(x, y, z)) {
                         continue;
                     }
-                    boolean anchored = y == box.minY() && !inside(x, y - 1, z) || anchoredOutside(x, y, z);
+                    boolean anchored = (y == box.minY() && !inside(x, y - 1, z)) || anchoredOutside(x, y, z);
                     if (anchored) {
                         seen.set(index(x, y, z));
                         queue.add(new int[] { x, y, z });

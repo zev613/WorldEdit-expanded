@@ -396,7 +396,7 @@ public final class RuinGenerator {
             }
             AgeBlock below = grid.get(x, y - 1, z);
             if (!grid.isStructural(x, y - 1, z) || !grid.inside(x, y, z)
-                || below.path().endsWith("_slab") && !"double".equals(below.get("type"))) {
+                || (below.path().endsWith("_slab") && !"double".equals(below.get("type")))) {
                 continue;
             }
             int cap = groundAt(x, z) + (pile.value(x, 0, z) > 0.55 ? 1 : 0);
