@@ -55,6 +55,8 @@ import com.sk89q.worldedit.command.ExpandCommands;
 import com.sk89q.worldedit.command.GeneralCommands;
 import com.sk89q.worldedit.command.GenerationCommands;
 import com.sk89q.worldedit.command.GenerationCommandsRegistration;
+import com.sk89q.worldedit.command.GuidebookCommands;
+import com.sk89q.worldedit.command.GuidebookCommandsRegistration;
 import com.sk89q.worldedit.command.HeightmapCommands;
 import com.sk89q.worldedit.command.HeightmapCommandsRegistration;
 import com.sk89q.worldedit.command.HistoryBrowserCommands;
@@ -466,6 +468,11 @@ public final class PlatformCommandManager {
             "Heightmap image import/export commands",
             HeightmapCommandsRegistration.builder(),
             new HeightmapCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            GuidebookCommandsRegistration.builder(),
+            new GuidebookCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
