@@ -29,12 +29,12 @@ import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.function.clipboard.ClipboardGround;
 import com.sk89q.worldedit.function.clipboard.ClipboardScaler;
 import com.sk89q.worldedit.function.clipboard.PathSampler;
 import com.sk89q.worldedit.function.clipboard.RadialLayout;
 import com.sk89q.worldedit.function.clipboard.ScaleResampler;
 import com.sk89q.worldedit.function.clipboard.TransformedClipboardPlacer;
-import com.sk89q.worldedit.function.diff.WorldDiff;
 import com.sk89q.worldedit.internal.annotation.Selection;
 import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -47,8 +47,6 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.session.NamedClipboardStore;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.world.block.BlockState;
-import com.sk89q.worldedit.world.registry.BlockMaterial;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
@@ -211,7 +209,8 @@ public class ClipboardToolCommands {
             Vector3 p = point.position();
             BlockVector3 to = BlockVector3.at(Math.floor(p.x() + 0.5), Math.floor(p.y() + 0.5), Math.floor(p.z() + 0.5));
             if (toGround) {
-                to = onGround(editSession, placer, to, lowest);
+                to = ClipboardGround.onGround(editSession, editSession.getWorld().getMinY(),
+                    editSession.getWorld().getMaxY(), placer, to, lowest);
             }
             placers.add(placer);
             targets.add(to);
@@ -249,41 +248,5 @@ public class ClipboardToolCommands {
             return null;
         }
         return nodes;
-    }
-
-    private static boolean isGround(BlockState state) {
-        if (WorldDiff.isAir(state)) {
-            return false;
-        }
-        BlockMaterial material = state.getBlockType().getMaterial();
-        // grass and other plants that get replaced when building are not ground
-        return material.isSolid() || material.isLiquid() || !material.isReplacedDuringPlacement();
-    }
-
-    /**
-     * Move a copy up or down so its lowest solid layer rests on the highest ground under its
-     * footprint. The search starts at the top of the copy, so a copy that is partly buried is lifted.
-     */
-    private static BlockVector3 onGround(EditSession editSession, TransformedClipboardPlacer placer,
-                                         BlockVector3 to, int lowestOffset) {
-        BlockVector3 min = to.add(placer.getMinimum());
-        BlockVector3 max = to.add(placer.getMaximum());
-        int floor = editSession.getWorld().getMinY();
-        int top = Math.min(max.y(), editSession.getWorld().getMaxY());
-        int ground = Integer.MIN_VALUE;
-        for (int x = min.x(); x <= max.x(); x++) {
-            for (int z = min.z(); z <= max.z(); z++) {
-                for (int y = top; y >= floor && y > ground; y--) {
-                    if (isGround(editSession.getBlock(BlockVector3.at(x, y, z)))) {
-                        ground = y;
-                        break;
-                    }
-                }
-            }
-        }
-        if (ground == Integer.MIN_VALUE) {
-            return to;
-        }
-        return to.withY(ground + 1 - lowestOffset);
     }
 }

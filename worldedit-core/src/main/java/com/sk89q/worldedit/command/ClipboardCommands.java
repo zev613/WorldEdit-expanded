@@ -176,7 +176,15 @@ public class ClipboardCommands {
                       @ClipboardMask
                           Mask sourceMask,
                       @ArgFlag(name = 'k', desc = "Paste from named clipboard", def = "")
-                          String clipName) throws WorldEditException {
+                          String clipName,
+                      @Switch(name = 'c', desc = "Conform: each column follows the terrain under it")
+                          boolean conform,
+                      @ArgFlag(name = 'r', desc = "With -c: smoothing radius (0 = follow exactly)", def = "1")
+                          int smoothRadius,
+                      @Switch(name = 'f', desc = "With -c: fill gaps under columns with their bottom block")
+                          boolean fillBelow,
+                      @Switch(name = 'w', desc = "With -c: rest on water surfaces instead of under water")
+                          boolean waterIsGround) throws WorldEditException {
 
         ClipboardHolder holder = (clipName != null && !clipName.isEmpty())
                 ? NamedClipboardStore.getDefault().getNamedClipboard(session, actor, clipName)
@@ -186,6 +194,12 @@ public class ClipboardCommands {
         List<Component> messages = Lists.newArrayList();
 
         BlockVector3 to = atOrigin ? clipboard.getOrigin() : session.getPlacementPosition(actor);
+        if (conform) {
+            ConformPasteHelper.paste(actor, world, session, editSession, holder, to, smoothRadius, waterIsGround,
+                ignoreAirBlocks, pasteStructureVoid, fillBelow, sourceMask, selectPasted, onlySelect,
+                pasteEntities || pasteBiomes);
+            return;
+        }
         if (!onlySelect) {
             Operation operation = holder
                     .createPaste(editSession)
