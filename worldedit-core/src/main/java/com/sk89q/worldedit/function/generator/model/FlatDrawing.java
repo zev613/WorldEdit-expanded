@@ -152,6 +152,10 @@ public final class FlatDrawing<T> {
                 + "not lie on the ground.");
         }
         int thickness = max[thin.index()] - min[thin.index()] + 1;
+        if (thickness > MAX_THICKNESS && forced != null) {
+            throw new IllegalArgumentException("The drawing is " + thickness + " blocks thick along " + thin.label()
+                + " (it spans " + size + ", x by y by z), so it can only go along the axis it is flat in.");
+        }
         if (thickness > MAX_THICKNESS) {
             throw new IllegalArgumentException("The drawing is not flat: its blocks span " + size
                 + " (x by y by z). Draw a flat picture at most " + MAX_THICKNESS + " blocks thick"
