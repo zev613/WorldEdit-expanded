@@ -42,7 +42,7 @@ public class SavedMaskCommands {
     private final SavedInputCommandHelper<Mask> helper;
 
     public SavedMaskCommands(WorldEdit worldEdit) {
-        this.helper = new SavedInputCommandHelper<>(worldEdit.getMaskFactory(), "mask", "//replace ");
+        this.helper = new SavedInputCommandHelper<>(worldEdit::getMaskFactory, "mask", "//replace ");
     }
 
     @Command(

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.function.Supplier;
 
 /**
  * The shared logic of {@code //pattern} and {@code //mask} (save, delete, list, info).
@@ -49,18 +50,18 @@ import java.util.SortedMap;
  */
 final class SavedInputCommandHelper<E> {
 
-    private final AbstractFactory<E> factory;
+    private final Supplier<? extends AbstractFactory<E>> factory;
     private final String kind;
     private final String useCommand;
 
     /**
      * Create a helper.
      *
-     * @param factory the pattern or mask factory
+     * @param factory supplies the pattern or mask factory (it is created after the commands)
      * @param kind "pattern" or "mask"
      * @param useCommand a command to suggest when a name is clicked, e.g. "//set "
      */
-    SavedInputCommandHelper(AbstractFactory<E> factory, String kind, String useCommand) {
+    SavedInputCommandHelper(Supplier<? extends AbstractFactory<E>> factory, String kind, String useCommand) {
         this.factory = factory;
         this.kind = kind;
         this.useCommand = useCommand;
@@ -68,7 +69,7 @@ final class SavedInputCommandHelper<E> {
 
     @SuppressWarnings("unchecked")
     private SavedInputParser<E> parser() {
-        for (InputParser<E> parser : factory.getParsers()) {
+        for (InputParser<E> parser : factory.get().getParsers()) {
             if (parser instanceof SavedInputParser<?> saved) {
                 return (SavedInputParser<E>) saved;
             }

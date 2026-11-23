@@ -42,7 +42,7 @@ public class SavedPatternCommands {
     private final SavedInputCommandHelper<Pattern> helper;
 
     public SavedPatternCommands(WorldEdit worldEdit) {
-        this.helper = new SavedInputCommandHelper<>(worldEdit.getPatternFactory(), "pattern", "//set ");
+        this.helper = new SavedInputCommandHelper<>(worldEdit::getPatternFactory, "pattern", "//set ");
     }
 
     @Command(
