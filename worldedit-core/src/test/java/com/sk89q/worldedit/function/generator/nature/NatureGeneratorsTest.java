@@ -187,6 +187,10 @@ class NatureGeneratorsTest {
         List<String> words = NamedSettings.replaceNames(List.of("flat", "seed=4"), "type", GiantMushroomGenerator.TYPES);
         assertEquals(1, settings(GiantMushroomGenerator.PARAMETERS, words.toArray(String[]::new)).getInt("type"));
         assertEquals(List.of("type=3"), NamedSettings.replaceNames(List.of("type=tubes"), "type", CoralGenerator.TYPES));
+        assertThrows(IllegalArgumentException.class,
+            () -> NamedSettings.replaceNames(List.of("type=banana"), "type", CoralGenerator.TYPES));
+        assertEquals(List.of("type=2", "7"), NamedSettings.replaceNames(List.of("type=2", "7"), "type",
+            CoralGenerator.TYPES));
         assertThrows(IllegalArgumentException.class, () -> NatureSize.of(List.of(1.0, 2.0)));
         assertThrows(IllegalArgumentException.class, () -> NatureSize.of(65));
         assertThrows(IllegalArgumentException.class, () -> NatureSize.of(0.5));

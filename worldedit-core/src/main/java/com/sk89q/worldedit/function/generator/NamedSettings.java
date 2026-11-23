@@ -43,12 +43,14 @@ public final class NamedSettings {
      * @param setting the setting the names are for
      * @param names the names, by number (several names for one number may be joined with {@code |})
      * @return the settings with names replaced
+     * @throws IllegalArgumentException for {@code setting=word} where the word is not one of the names
      */
     public static List<String> replaceNames(List<String> arguments, String setting, List<String> names) {
         String prefix = setting + "=";
         return arguments.stream().map(argument -> {
             String word = argument.trim().toLowerCase(Locale.ROOT);
-            if (word.startsWith(prefix)) {
+            boolean named = word.startsWith(prefix);
+            if (named) {
                 word = word.substring(prefix.length());
             }
             for (int i = 0; i < names.size(); i++) {
@@ -57,6 +59,11 @@ public final class NamedSettings {
                         return prefix + i;
                     }
                 }
+            }
+            if (named && !word.isEmpty() && !Character.isDigit(word.charAt(0)) && word.charAt(0) != '-'
+                && word.charAt(0) != '.') {
+                throw new IllegalArgumentException("Unknown " + setting + " '" + word + "'. Choose "
+                    + describe(names));
             }
             return argument;
         }).toList();

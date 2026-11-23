@@ -63,7 +63,7 @@ public final class RootGenerator {
         Random random = new Random(seed);
         NatureModel model = size.hangingModel();
         double spread = size.minHorizontal();
-        double thickness = Math.max(MIN_RADIUS, spread * 0.14);
+        double thickness = Math.max(MIN_RADIUS, spread * 0.18);
         SeededNoise[] wander = {
             new SeededNoise(seed, 6, 0.12, 2), new SeededNoise(seed, 7, 0.12, 2), new SeededNoise(seed, 8, 0.12, 2),
         };
@@ -112,7 +112,7 @@ public final class RootGenerator {
             Vector3 push = Vector3.at(wander[0].signed(nx, position.y(), position.z()),
                 wander[1].signed(nx, position.y(), position.z()) * 0.6,
                 wander[2].signed(nx, position.y(), position.z()));
-            heading = heading.add(push.multiply(0.22)).add(0, -0.05 - 0.08 * progress, 0).normalize();
+            heading = heading.add(push.multiply(0.15)).add(0, -0.03 - 0.05 * progress, 0).normalize();
             if (heading.y() > 0.1) {
                 heading = Vector3.at(heading.x(), 0.1, heading.z()).normalize();
             }

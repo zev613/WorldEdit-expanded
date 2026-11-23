@@ -24,6 +24,7 @@ import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
 import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 import com.sk89q.worldedit.math.Vector3;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -105,7 +106,7 @@ public final class CoralGenerator {
             NatureMath.ball(model, position, radius, CORAL);
             return;
         }
-        int children = random.nextDouble() < 0.35 ? 3 : 2;
+        int children = random.nextDouble() < 0.5 ? 3 : 2;
         double azimuth = random.nextDouble() * Math.PI * 2;
         Vector3[] sides = NatureMath.perpendiculars(heading);
         for (int i = 0; i < children; i++) {
@@ -221,15 +222,33 @@ public final class CoralGenerator {
 
     private static void tubes(NatureModel model, NatureSize size, Random random) {
         double spread = size.minHorizontal();
-        int count = (int) Math.max(3, Math.min(25, Math.round(size.x() * size.z() / 5)));
-        double maxRadius = Math.max(1, Math.min(3, spread / 3));
+        int count = (int) Math.max(3, Math.min(25, Math.round(size.x() * size.z() / 10)));
+        double maxRadius = Math.max(1, Math.min(2.5, spread / 4));
         double furthest = 0;
+        List<double[]> placed = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             double tubeRadius = NatureMath.between(random, 0.9, maxRadius);
-            double azimuth = random.nextDouble() * Math.PI * 2;
-            double distance = Math.sqrt(random.nextDouble()) * Math.max(0, spread * 0.75 - tubeRadius);
-            double bx = Math.cos(azimuth) * distance * size.x() / spread;
-            double bz = Math.sin(azimuth) * distance * size.z() / spread;
+            double bx = 0;
+            double bz = 0;
+            boolean free = false;
+            // keep tubes from merging into one lump
+            for (int attempt = 0; attempt < 20 && !free; attempt++) {
+                double azimuth = random.nextDouble() * Math.PI * 2;
+                double distance = Math.sqrt(random.nextDouble()) * Math.max(0, spread * 0.75 - tubeRadius);
+                bx = Math.cos(azimuth) * distance * size.x() / spread;
+                bz = Math.sin(azimuth) * distance * size.z() / spread;
+                free = true;
+                for (double[] other : placed) {
+                    if (Math.hypot(bx - other[0], bz - other[1]) < tubeRadius + other[2] + 1) {
+                        free = false;
+                        break;
+                    }
+                }
+            }
+            if (!free) {
+                continue;
+            }
+            placed.add(new double[] {bx, bz, tubeRadius});
             double height = size.height() * NatureMath.between(random, 0.35, 1.0);
             double leanX = NatureMath.between(random, -0.12, 0.12) * height;
             double leanZ = NatureMath.between(random, -0.12, 0.12) * height;
