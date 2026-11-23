@@ -49,9 +49,31 @@ class ShapeFlagsTest {
     }
 
     @Test
+    void wordFlagsTakeTheNextArgument() {
+        ShapeFlags flags = ShapeFlags.parse(List.of("loops=3", "-a", "8", "-m", "!air", "-c", "30"), "h", "acs", "m");
+        assertEquals("!air", flags.text('m').orElseThrow());
+        assertEquals(8, flags.value('a', 0));
+        assertEquals(30, flags.value('c', 0));
+        assertTrue(flags.text('x').isEmpty());
+        assertEquals(List.of("loops=3"), flags.remaining());
+        assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-m"), "h", "a", "m"));
+    }
+
+    @Test
     void badFlagsAreReported() {
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-x"), "h", "rt"));
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-r"), "h", "rt"));
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-r", "abc"), "h", "rt"));
+    }
+
+    @Test
+    void wordFlagsWithFallbackTakeTheNextArgument() {
+        ShapeFlags flags = ShapeFlags.parse(List.of("10", "-w", "glass", "windows=4", "-s", "oak_stairs[half=top]"),
+            "", "", "ws");
+        assertEquals("glass", flags.text('w', ""));
+        assertEquals("oak_stairs[half=top]", flags.text('s', ""));
+        assertEquals("", flags.text('x', ""));
+        assertEquals(List.of("10", "windows=4"), flags.remaining());
+        assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-w"), "", "", "w"));
     }
 }

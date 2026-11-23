@@ -28,17 +28,25 @@ import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MissingWorldException;
 import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.command.AgeCommands;
+import com.sk89q.worldedit.command.AgeCommandsRegistration;
 import com.sk89q.worldedit.command.ApplyBrushCommands;
 import com.sk89q.worldedit.command.BiomeCommands;
 import com.sk89q.worldedit.command.BiomeCommandsRegistration;
 import com.sk89q.worldedit.command.BrushCommands;
 import com.sk89q.worldedit.command.BrushCommandsRegistration;
+import com.sk89q.worldedit.command.BuildPartCommands;
+import com.sk89q.worldedit.command.BuildPartCommandsRegistration;
 import com.sk89q.worldedit.command.BuildToolCommands;
 import com.sk89q.worldedit.command.BuildToolCommandsRegistration;
 import com.sk89q.worldedit.command.ChunkCommands;
 import com.sk89q.worldedit.command.ChunkCommandsRegistration;
 import com.sk89q.worldedit.command.ClipboardCommands;
 import com.sk89q.worldedit.command.ClipboardCommandsRegistration;
+import com.sk89q.worldedit.command.ClipboardToolCommands;
+import com.sk89q.worldedit.command.ClipboardToolCommandsRegistration;
+import com.sk89q.worldedit.command.CombineCommands;
+import com.sk89q.worldedit.command.CombineCommandsRegistration;
 import com.sk89q.worldedit.command.DiffCommands;
 import com.sk89q.worldedit.command.DiffCommandsRegistration;
 import com.sk89q.worldedit.command.EditJobCommands;
@@ -49,10 +57,16 @@ import com.sk89q.worldedit.command.GenerationCommands;
 import com.sk89q.worldedit.command.GenerationCommandsRegistration;
 import com.sk89q.worldedit.command.HeightmapCommands;
 import com.sk89q.worldedit.command.HeightmapCommandsRegistration;
+import com.sk89q.worldedit.command.HistoryBrowserCommands;
+import com.sk89q.worldedit.command.HistoryBrowserCommandsRegistration;
 import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
 import com.sk89q.worldedit.command.LandscapeCommandsRegistration;
+import com.sk89q.worldedit.command.ModelCommands;
+import com.sk89q.worldedit.command.ModelCommandsRegistration;
+import com.sk89q.worldedit.command.NatureCommands;
+import com.sk89q.worldedit.command.NatureCommandsRegistration;
 import com.sk89q.worldedit.command.NavigationCommands;
 import com.sk89q.worldedit.command.NavigationCommandsRegistration;
 import com.sk89q.worldedit.command.PaintBrushCommands;
@@ -60,6 +74,10 @@ import com.sk89q.worldedit.command.PreviewCommands;
 import com.sk89q.worldedit.command.PreviewCommandsRegistration;
 import com.sk89q.worldedit.command.RegionCommands;
 import com.sk89q.worldedit.command.RegionCommandsRegistration;
+import com.sk89q.worldedit.command.SavedMaskCommands;
+import com.sk89q.worldedit.command.SavedMaskCommandsRegistration;
+import com.sk89q.worldedit.command.SavedPatternCommands;
+import com.sk89q.worldedit.command.SavedPatternCommandsRegistration;
 import com.sk89q.worldedit.command.SchematicCommands;
 import com.sk89q.worldedit.command.SchematicCommandsRegistration;
 import com.sk89q.worldedit.command.ScriptingCommands;
@@ -70,10 +88,16 @@ import com.sk89q.worldedit.command.ShapeCommands;
 import com.sk89q.worldedit.command.ShapeCommandsRegistration;
 import com.sk89q.worldedit.command.ShapePresetCommands;
 import com.sk89q.worldedit.command.ShapePresetCommandsRegistration;
+import com.sk89q.worldedit.command.SkyscraperCommands;
+import com.sk89q.worldedit.command.SkyscraperCommandsRegistration;
+import com.sk89q.worldedit.command.SmartSelectionCommands;
+import com.sk89q.worldedit.command.SmartSelectionCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotCommands;
 import com.sk89q.worldedit.command.SnapshotCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotUtilCommands;
 import com.sk89q.worldedit.command.SnapshotUtilCommandsRegistration;
+import com.sk89q.worldedit.command.StyleCommands;
+import com.sk89q.worldedit.command.StyleCommandsRegistration;
 import com.sk89q.worldedit.command.SuperPickaxeCommands;
 import com.sk89q.worldedit.command.SuperPickaxeCommandsRegistration;
 import com.sk89q.worldedit.command.TerrainPaintCommands;
@@ -83,6 +107,8 @@ import com.sk89q.worldedit.command.ToolUtilCommands;
 import com.sk89q.worldedit.command.ToolUtilCommandsRegistration;
 import com.sk89q.worldedit.command.UtilityCommands;
 import com.sk89q.worldedit.command.UtilityCommandsRegistration;
+import com.sk89q.worldedit.command.WarpCommands;
+import com.sk89q.worldedit.command.WarpCommandsRegistration;
 import com.sk89q.worldedit.command.WorldEditCommands;
 import com.sk89q.worldedit.command.WorldEditCommandsRegistration;
 import com.sk89q.worldedit.command.argument.Arguments;
@@ -98,6 +124,7 @@ import com.sk89q.worldedit.command.argument.EnumConverter;
 import com.sk89q.worldedit.command.argument.FactoryConverter;
 import com.sk89q.worldedit.command.argument.HeightConverter;
 import com.sk89q.worldedit.command.argument.NamedShapeConverter;
+import com.sk89q.worldedit.command.argument.NamedWarpConverter;
 import com.sk89q.worldedit.command.argument.OffsetConverter;
 import com.sk89q.worldedit.command.argument.RegionFactoryConverter;
 import com.sk89q.worldedit.command.argument.RegistryConverter;
@@ -245,6 +272,7 @@ public final class PlatformCommandManager {
         BooleanConverter.register(commandManager);
         EntityRemoverConverter.register(commandManager);
         NamedShapeConverter.register(commandManager);
+        NamedWarpConverter.register(commandManager);
         RegionFactoryConverter.register(commandManager);
         WorldConverter.register(commandManager);
         SideEffectConverter.register(commandManager);
@@ -388,8 +416,18 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            BuildPartCommandsRegistration.builder(),
+            new BuildPartCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
             BuildToolCommandsRegistration.builder(),
             new BuildToolCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            AgeCommandsRegistration.builder(),
+            new AgeCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
@@ -400,6 +438,11 @@ public final class PlatformCommandManager {
             commandManager,
             ClipboardCommandsRegistration.builder(),
             new ClipboardCommands()
+        );
+        this.registration.register(
+            commandManager,
+            ClipboardToolCommandsRegistration.builder(),
+            new ClipboardToolCommands()
         );
         this.registration.register(
             commandManager,
@@ -431,8 +474,25 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            HistoryBrowserCommandsRegistration.builder(),
+            new HistoryBrowserCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
             LandscapeCommandsRegistration.builder(),
             new LandscapeCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            ModelCommandsRegistration.builder(),
+            new ModelCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/combine",
+            ImmutableList.of("/compound"),
+            "Build compound shapes: add, cut and keep named shapes, then blend and build them",
+            CombineCommandsRegistration.builder(),
+            new CombineCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
@@ -454,12 +514,53 @@ public final class PlatformCommandManager {
             ShapeCommandsRegistration.builder(),
             new ShapeCommands(worldEdit)
         );
+        this.registration.register(
+            commandManager,
+            SmartSelectionCommandsRegistration.builder(),
+            new SmartSelectionCommands(worldEdit)
+        );
         registerSubCommands(
             "/shapedef",
             ImmutableList.of("/shapepreset"),
             "Save shapes with your own settings under a new name",
             ShapePresetCommandsRegistration.builder(),
             new ShapePresetCommands()
+        );
+        this.registration.register(
+            commandManager,
+            WarpCommandsRegistration.builder(),
+            new WarpCommands()
+        );
+        this.registration.register(
+            commandManager,
+            SkyscraperCommandsRegistration.builder(),
+            new SkyscraperCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/pattern",
+            ImmutableList.of("/patterns"),
+            "Save patterns under a name and use them as #name",
+            SavedPatternCommandsRegistration.builder(),
+            new SavedPatternCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/mask",
+            ImmutableList.of("/masks"),
+            "Save masks under a name and use them as #name",
+            SavedMaskCommandsRegistration.builder(),
+            new SavedMaskCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/style",
+            ImmutableList.of("/buildingstyle"),
+            "List, show, save and delete building styles for //skyscraper",
+            StyleCommandsRegistration.builder(),
+            new StyleCommands()
+        );
+        this.registration.register(
+            commandManager,
+            NatureCommandsRegistration.builder(),
+            new NatureCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
@@ -580,6 +681,7 @@ public final class PlatformCommandManager {
         Actor actor = platformManager.createProxyActor(event.getActor());
         LocalSession session = worldEdit.getSessionManager().get(actor);
         Request.request().setSession(session);
+        Request.request().setDescription(event.getArguments());
         if (actor instanceof Entity entity && entity.getExtent() instanceof World world) {
             Request.request().setWorld(world);
         }

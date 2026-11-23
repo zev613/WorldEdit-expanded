@@ -23,11 +23,14 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.extension.factory.parser.pattern.BlockCategoryPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.ClipboardPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.GradientPatternParser;
+import com.sk89q.worldedit.extension.factory.parser.pattern.LayoutPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.RandomPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.RandomStatePatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.SingleBlockPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.TypeOrStateApplyingPatternParser;
 import com.sk89q.worldedit.extension.factory.parser.pattern.VoronoiPatternParser;
+import com.sk89q.worldedit.extension.factory.parser.saved.SavedInputParser;
+import com.sk89q.worldedit.extension.factory.parser.saved.SavedInputs;
 import com.sk89q.worldedit.function.pattern.Pattern;
 import com.sk89q.worldedit.internal.registry.AbstractFactory;
 
@@ -58,6 +61,10 @@ public final class PatternFactory extends AbstractFactory<Pattern> {
         register(new BlockCategoryPatternParser(worldEdit));
         register(new GradientPatternParser(worldEdit));
         register(new VoronoiPatternParser(worldEdit));
+        register(new LayoutPatternParser(worldEdit));
+
+        // #name for patterns saved with //pattern save (keep this after the built-in # patterns)
+        register(new SavedInputParser<>(worldEdit, SavedInputs::patterns, WorldEdit::getPatternFactory));
     }
 
 }

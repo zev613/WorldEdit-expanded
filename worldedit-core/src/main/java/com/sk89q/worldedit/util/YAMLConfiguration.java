@@ -102,6 +102,9 @@ public class YAMLConfiguration extends LocalConfiguration {
 
         navigationWand = convertLegacyItem(config.getString("navigation-wand.item", navigationWand)).toLowerCase(Locale.ROOT);
         navigationWandMaxDistance = config.getInt("navigation-wand.max-distance", navigationWandMaxDistance);
+        jumptoMaxDistance = config.getInt("navigation.jumpto-max-distance", jumptoMaxDistance);
+        maxConnectedSelectionDistance = config.getInt("limits.max-connected-selection-distance", maxConnectedSelectionDistance);
+        maxConnectedSelectionBlocks = config.getInt("limits.max-connected-selection-blocks", maxConnectedSelectionBlocks);
         navigationUseGlass = config.getBoolean("navigation.use-glass", navigationUseGlass);
 
         scriptTimeout = config.getInt("scripting.timeout", scriptTimeout);

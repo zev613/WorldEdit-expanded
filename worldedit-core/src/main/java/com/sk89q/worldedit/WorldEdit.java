@@ -54,6 +54,7 @@ import com.sk89q.worldedit.scripting.CraftScriptEngine;
 import com.sk89q.worldedit.scripting.RhinoCraftScriptEngine;
 import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldedit.session.job.EditJobQueue;
+import com.sk89q.worldedit.session.job.TickListeners;
 import com.sk89q.worldedit.util.Direction;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.util.asset.AssetLoaders;
@@ -126,6 +127,7 @@ public final class WorldEdit {
     private final AssetLoaders assetLoaders = new AssetLoaders(this);
     private final SchematicsManager schematicsManager = new SchematicsManager(this);
     private final EditJobQueue editJobQueue = new EditJobQueue(this);
+    private final TickListeners tickListeners = new TickListeners();
 
     private final BlockFactory blockFactory = new BlockFactory(this);
     private final ItemFactory itemFactory = new ItemFactory(this);
@@ -249,6 +251,15 @@ public final class WorldEdit {
      */
     public EditJobQueue getEditJobQueue() {
         return editJobQueue;
+    }
+
+    /**
+     * Get the tasks that run once per server tick (on platforms that tick WorldEdit).
+     *
+     * @return the tick listeners
+     */
+    public TickListeners getTickListeners() {
+        return tickListeners;
     }
 
     /**

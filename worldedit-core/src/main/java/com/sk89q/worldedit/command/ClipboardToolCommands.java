@@ -1,0 +1,371 @@
+/*
+ * WorldEdit, a Minecraft world manipulation toolkit
+ * Copyright (C) sk89q <http://www.sk89q.com>
+ * Copyright (C) WorldEdit team and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.sk89q.worldedit.command;
+
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.util.CommandPermissions;
+import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
+import com.sk89q.worldedit.command.util.Logging;
+import com.sk89q.worldedit.entity.Player;
+import com.sk89q.worldedit.extension.platform.Actor;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.function.clipboard.ClipboardGround;
+import com.sk89q.worldedit.function.clipboard.ClipboardScaler;
+import com.sk89q.worldedit.function.clipboard.GridLayout;
+import com.sk89q.worldedit.function.clipboard.PathSampler;
+import com.sk89q.worldedit.function.clipboard.RadialLayout;
+import com.sk89q.worldedit.function.clipboard.ScaleResampler;
+import com.sk89q.worldedit.function.clipboard.TransformedClipboardPlacer;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.internal.annotation.Selection;
+import com.sk89q.worldedit.math.BlockVector2;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.Vector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
+import com.sk89q.worldedit.regions.ConvexPolyhedralRegion;
+import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.regions.Polygonal2DRegion;
+import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.session.NamedClipboardStore;
+import com.sk89q.worldedit.util.formatting.text.TextComponent;
+import org.enginehub.piston.annotation.Command;
+import org.enginehub.piston.annotation.CommandContainer;
+import org.enginehub.piston.annotation.param.Arg;
+import org.enginehub.piston.annotation.param.ArgFlag;
+import org.enginehub.piston.annotation.param.Switch;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import static com.sk89q.worldedit.command.util.Logging.LogMode.PLACEMENT;
+
+/**
+ * Clipboard tools: scale by any factor, paste in a ring, and repeat along a path.
+ */
+@CommandContainer(superTypes = CommandPermissionsConditionGenerator.Registration.class)
+public class ClipboardToolCommands {
+
+    private static final int MAX_PATH_COPIES = 10_000;
+
+    private static ClipboardHolder holder(LocalSession session, Actor actor, String clipName) throws WorldEditException {
+        return clipName != null && !clipName.isEmpty()
+            ? NamedClipboardStore.getDefault().getNamedClipboard(session, actor, clipName)
+            : session.getClipboard();
+    }
+
+    @Command(
+        name = "/scale",
+        aliases = { "/resize" },
+        desc = "Scales the clipboard by any factor, e.g. 2.5, 0.5 or 1,2,1 (x,y,z)",
+        descFooter = "Scales around the clipboard origin, so //paste lands where it did before, just bigger or "
+            + "smaller. Enlarging fills every block (no holes). When shrinking, a block becomes solid when at "
+            + "least a quarter of what it covers is solid (change with -a, e.g. -a 0.5), using the most common "
+            + "block there, so thin walls survive. Block states (stairs, logs) are kept; chest contents and "
+            + "sign text are kept on one copy only. Any //rotate or //flip is applied first."
+    )
+    @CommandPermissions("worldedit.clipboard.scale")
+    public void scale(Actor actor, LocalSession session,
+                      @Arg(desc = "Factor, or x,y,z factors")
+                          String factor,
+                      @ArgFlag(name = 'a', desc = "When shrinking, how much of a block must be solid (0-1)", def = "0.25")
+                          double solidFraction,
+                      @ArgFlag(name = 'k', desc = "Scale a named clipboard instead", def = "")
+                          String clipName) throws WorldEditException {
+        ClipboardHolder holder = holder(session, actor, clipName);
+        Clipboard scaled;
+        try {
+            double[] factors = ScaleResampler.parseFactor(factor);
+            scaled = ClipboardScaler.scale(TransformedClipboardPlacer.flatten(holder), factors,
+                solidFraction, ScaleResampler.MAX_VOLUME);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        ClipboardHolder result = new ClipboardHolder(scaled);
+        if (clipName != null && !clipName.isEmpty()) {
+            session.setNamedClipboard(clipName, result);
+        }
+        session.setClipboard(result);
+        BlockVector3 size = scaled.getDimensions();
+        actor.printInfo(TextComponent.of("Clipboard scaled by " + factor + " to "
+            + size.x() + "x" + size.y() + "x" + size.z() + " blocks"
+            + (clipName != null && !clipName.isEmpty() ? " (named clipboard '" + clipName + "' updated)" : "")
+            + ". Use //paste to place it."));
+    }
+
+    @Command(
+        name = "/radial",
+        aliases = { "/ring" },
+        desc = "Pastes the clipboard several times evenly around you, each copy turned to face outward",
+        descFooter = "Copy number k is the normal //paste turned k*360/count degrees clockwise around your "
+            + "position, like spokes of a wheel; the first copy is exactly where //paste would put it. "
+            + "Without a radius each copy keeps the distance it has from you when pasting; with a radius "
+            + "the centre of each copy is moved to that many blocks from you. Copies at angles that are "
+            + "not multiples of 90 degrees turn stairs and other directional blocks to the nearest "
+            + "direction they support. One //undo removes all copies."
+    )
+    @CommandPermissions("worldedit.clipboard.radial")
+    @Logging(PLACEMENT)
+    public void radial(Actor actor, LocalSession session, EditSession editSession,
+                       @Arg(desc = "Number of copies")
+                           int count,
+                       @Arg(desc = "Distance from you to the centre of each copy (default: as pasted)", def = "")
+                           Double radius,
+                       @Switch(name = 'a', desc = "Skip air blocks")
+                           boolean ignoreAir,
+                       @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
+                           String clipName) throws WorldEditException {
+        if (radius != null) {
+            WorldEdit.getInstance().checkMaxRadius(radius);
+        }
+        Clipboard clipboard = TransformedClipboardPlacer.flatten(holder(session, actor, clipName));
+        BlockVector3 origin = clipboard.getOrigin();
+        Vector3 center = clipboard.getRegion().getMinimumPoint().add(clipboard.getRegion().getMaximumPoint())
+            .toVector3().divide(2).subtract(origin.toVector3());
+        RadialLayout layout;
+        try {
+            layout = new RadialLayout(count, center, radius, yawOf(actor));
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        BlockVector3 to = session.getPlacementPosition(actor);
+        int changed = 0;
+        for (int i = 0; i < layout.getCount(); i++) {
+            changed += new TransformedClipboardPlacer(clipboard, layout.transform(i), ignoreAir).place(editSession, to);
+        }
+        actor.printInfo(TextComponent.of("Pasted " + count + " copies around " + to
+            + " (" + changed + " blocks)."));
+    }
+
+    @Command(
+        name = "/stackpath",
+        aliases = { "/pathstack" },
+        desc = "Repeats the clipboard along a smooth path through the selection points",
+        descFooter = "The path goes through the points of a //sel poly or //sel convex selection in the order "
+            + "you clicked them (a cuboid goes from pos1 to pos2), smoothed like //curve. A copy is pasted "
+            + "every <spacing> blocks along it, with the clipboard origin on the path, like //paste there. "
+            + "-r turns each copy to follow the path (the first copy is not turned; later ones turn as much "
+            + "as the path does). -g drops (or lifts) each copy so it sits on the ground under it. "
+            + "One //undo removes all copies."
+    )
+    @CommandPermissions("worldedit.clipboard.stackpath")
+    @Logging(PLACEMENT)
+    public void stackPath(Actor actor, LocalSession session, EditSession editSession,
+                          @Selection Region region,
+                          @Arg(desc = "Blocks of path length between copies")
+                              double spacing,
+                          @Switch(name = 'a', desc = "Skip air blocks")
+                              boolean ignoreAir,
+                          @Switch(name = 'r', desc = "Turn each copy to follow the path")
+                              boolean followPath,
+                          @Switch(name = 'g', desc = "Put each copy on the ground beneath it")
+                              boolean toGround,
+                          @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
+                              String clipName) throws WorldEditException {
+        List<Vector3> nodes = pathNodes(region);
+        if (nodes == null) {
+            actor.printError(TextComponent.of("//stackpath needs a cuboid, //sel poly or //sel convex selection."));
+            return;
+        }
+        List<PathSampler.PathPoint> points;
+        try {
+            points = PathSampler.sample(nodes, spacing, MAX_PATH_COPIES);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        Clipboard clipboard = TransformedClipboardPlacer.flatten(holder(session, actor, clipName));
+        int lowest = TransformedClipboardPlacer.lowestSolidOffset(clipboard);
+        double firstHeading = points.getFirst().heading();
+
+        // work out every placement first, so ground checks see the world as it was
+        List<TransformedClipboardPlacer> placers = new ArrayList<>();
+        List<BlockVector3> targets = new ArrayList<>();
+        for (PathSampler.PathPoint point : points) {
+            AffineTransform transform = followPath
+                ? RadialLayout.clockwise(point.heading() - firstHeading)
+                : new AffineTransform();
+            TransformedClipboardPlacer placer = new TransformedClipboardPlacer(clipboard, transform, ignoreAir);
+            Vector3 p = point.position();
+            BlockVector3 to = BlockVector3.at(Math.floor(p.x() + 0.5), Math.floor(p.y() + 0.5), Math.floor(p.z() + 0.5));
+            if (toGround) {
+                to = ClipboardGround.onGround(editSession, editSession.getWorld().getMinY(),
+                    editSession.getWorld().getMaxY(), placer, to, lowest);
+            }
+            placers.add(placer);
+            targets.add(to);
+        }
+        int changed = 0;
+        for (int i = 0; i < placers.size(); i++) {
+            changed += placers.get(i).place(editSession, targets.get(i));
+        }
+        actor.printInfo(TextComponent.of("Pasted " + placers.size() + " copies along the path ("
+            + changed + " blocks)."));
+    }
+
+    @Command(
+        name = "/grid",
+        desc = "Repeats the clipboard (or with -s the selection) in a grid of rows and columns",
+        descFooter = "Columns go to your right and rows away from you (along the nearest world axis; from "
+            + "the console columns go along +x and rows along +z). Spacing is the gap in blocks between "
+            + "copies (0 = touching), e.g. //grid 5 5 6 makes a 5x5 block of copies with 6-wide streets. "
+            + "The first copy is where //paste would put it; with -s the selection itself is the first copy "
+            + "and stays as it is. -r turns each copy a random multiple of 90 degrees (the seed is shown; "
+            + "repeat a layout with -d <seed>), -g puts each copy on the ground, -y <rise> raises each row by "
+            + "that many blocks (terraces), -a skips air. One //undo removes all copies."
+    )
+    @CommandPermissions("worldedit.clipboard.grid")
+    @Logging(PLACEMENT)
+    public void grid(Actor actor, LocalSession session, EditSession editSession,
+                     @Arg(desc = "Copies to your right (columns)")
+                         int columns,
+                     @Arg(desc = "Copies away from you (rows)")
+                         int rows,
+                     @Arg(desc = "Gap between columns", def = "0")
+                         int spacingRight,
+                     @Arg(desc = "Gap between rows (default: same as between columns)", def = "-1")
+                         int spacingForward,
+                     @Switch(name = 's', desc = "Repeat the selection instead of the clipboard")
+                         boolean useSelection,
+                     @Switch(name = 'a', desc = "Skip air blocks")
+                         boolean ignoreAir,
+                     @Switch(name = 'r', desc = "Turn each copy randomly by multiples of 90 degrees")
+                         boolean randomTurn,
+                     @ArgFlag(name = 'd', desc = "Seed for -r (implies -r)", def = "")
+                         String seed,
+                     @Switch(name = 'g', desc = "Put each copy on the ground beneath it")
+                         boolean toGround,
+                     @ArgFlag(name = 'y', desc = "Blocks to raise each row", def = "0")
+                         int rise,
+                     @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
+                         String clipName) throws WorldEditException {
+        int spacingFwd = spacingForward < 0 ? spacingRight : spacingForward;
+        Clipboard clipboard;
+        BlockVector3 anchor;
+        if (useSelection) {
+            Region region = session.getSelection(editSession.getWorld());
+            int limit = session.getBlockChangeLimit();
+            if (limit >= 0 && region.getBoundingBox().getVolume() >= limit) {
+                throw new MaxChangedBlocksException(limit);
+            }
+            BlockArrayClipboard copy = new BlockArrayClipboard(region);
+            copy.setOrigin(region.getMinimumPoint());
+            Operations.complete(new ForwardExtentCopy(editSession, region, copy, region.getMinimumPoint()));
+            clipboard = copy;
+            anchor = region.getMinimumPoint();
+        } else {
+            clipboard = TransformedClipboardPlacer.flatten(holder(session, actor, clipName));
+            anchor = session.getPlacementPosition(actor)
+                .add(clipboard.getRegion().getMinimumPoint().subtract(clipboard.getOrigin()));
+        }
+        BlockVector3 size = clipboard.getDimensions();
+        boolean turning = randomTurn || (seed != null && !seed.isEmpty());
+        long seedValue = 0;
+        List<GridLayout.Cell> cells;
+        int[] forward = actor instanceof Player ? GridLayout.forwardFromYaw(yawOf(actor)) : new int[] { 0, 1 };
+        int[] right = actor instanceof Player ? GridLayout.rightOf(forward) : new int[] { 1, 0 };
+        try {
+            GridLayout.check(columns, rows, spacingRight, spacingFwd, rise,
+                (long) size.x() * size.y() * size.z());
+            if (turning) {
+                seedValue = parseSeed(seed);
+            }
+            cells = GridLayout.layout(columns, rows, spacingRight, spacingFwd, size.x(), size.z(), right, forward,
+                rise, turning ? new Random(seedValue) : null);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        int lowest = TransformedClipboardPlacer.lowestSolidOffset(clipboard);
+        int minY = editSession.getWorld().getMinY();
+        int maxY = editSession.getWorld().getMaxY();
+
+        // work out every placement first, so ground checks see the world as it was
+        List<TransformedClipboardPlacer> placers = new ArrayList<>();
+        List<BlockVector3> targets = new ArrayList<>();
+        for (GridLayout.Cell cell : cells) {
+            if (useSelection && cell.column() == 0 && cell.row() == 0) {
+                continue;
+            }
+            TransformedClipboardPlacer placer = new TransformedClipboardPlacer(clipboard,
+                RadialLayout.clockwise(90.0 * cell.quarterTurns()), ignoreAir);
+            BlockVector3 to = anchor.add(cell.dx(), cell.dy(), cell.dz()).subtract(placer.getMinimum());
+            if (toGround) {
+                to = ClipboardGround.onGround(editSession, minY, maxY, placer, to, lowest);
+            }
+            placers.add(placer);
+            targets.add(to);
+        }
+        int changed = 0;
+        for (int i = 0; i < placers.size(); i++) {
+            changed += placers.get(i).place(editSession, targets.get(i));
+        }
+        actor.printInfo(TextComponent.of("Placed a " + columns + " x " + rows + " grid (" + placers.size()
+            + " copies, " + changed + " blocks)" + (turning ? ", random turns with seed " + seedValue : "")
+            + "."));
+    }
+
+    private static long parseSeed(String seed) {
+        if (seed == null || seed.isEmpty()) {
+            return new Random().nextLong();
+        }
+        try {
+            return Long.parseLong(seed);
+        } catch (NumberFormatException _) {
+            return seed.hashCode();
+        }
+    }
+
+    private static double yawOf(Actor actor) {
+        if (actor instanceof Player player) {
+            return player.getLocation().getYaw();
+        }
+        return 0;
+    }
+
+    private static List<Vector3> pathNodes(Region region) {
+        List<Vector3> nodes = new ArrayList<>();
+        if (region instanceof ConvexPolyhedralRegion convex) {
+            for (BlockVector3 vertex : convex.getVertices()) {
+                nodes.add(vertex.toVector3());
+            }
+        } else if (region instanceof Polygonal2DRegion poly) {
+            int y = poly.getMinimumY();
+            for (BlockVector2 point : poly.getPoints()) {
+                nodes.add(Vector3.at(point.x(), y, point.z()));
+            }
+        } else if (region instanceof CuboidRegion cuboid) {
+            nodes.add(cuboid.getPos1().toVector3());
+            nodes.add(cuboid.getPos2().toVector3());
+        } else {
+            return null;
+        }
+        return nodes;
+    }
+}

@@ -299,6 +299,52 @@ public class PersistentHistory implements HistoryListener {
         return findCandidate(false) != null;
     }
 
+    /**
+     * An edit saved on disk that is not part of the in-memory history.
+     *
+     * @param id the id; it starts with the time in milliseconds
+     * @param done true if it is not undone
+     */
+    public record SavedEdit(String id, boolean done) {
+    }
+
+    /**
+     * List the saved edits that are not part of the in-memory history (they are
+     * older than everything in memory), oldest first. This does not read the files.
+     *
+     * @return the edits
+     */
+    public synchronized List<SavedEdit> listUnloaded() {
+        List<FileInfo> files = await(this::listFiles);
+        Set<String> inMemory = new HashSet<>();
+        for (Entry entry : mapped.values()) {
+            inMemory.add(entry.id);
+        }
+        List<SavedEdit> result = new ArrayList<>();
+        for (FileInfo info : files) {
+            if (!inMemory.contains(info.id())) {
+                result.add(new SavedEdit(info.id(), info.done()));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Read a saved edit that is not part of the in-memory history.
+     *
+     * @param id the id from {@link #listUnloaded()}
+     * @return the snapshot, or {@code null} if there is no such edit
+     * @throws IOException if it can't be read
+     */
+    public synchronized @Nullable HistorySnapshot readUnloaded(String id) throws IOException {
+        for (FileInfo info : await(this::listFiles)) {
+            if (info.id().equals(id)) {
+                return HistorySnapshot.read(info.path(), resolver);
+            }
+        }
+        return null;
+    }
+
     private @Nullable FileInfo findCandidate(boolean undo) {
         List<FileInfo> files = await(this::listFiles);
         Set<String> inMemory = new HashSet<>();

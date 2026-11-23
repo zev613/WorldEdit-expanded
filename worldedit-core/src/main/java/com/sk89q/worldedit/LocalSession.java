@@ -37,6 +37,7 @@ import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extension.platform.Locatable;
 import com.sk89q.worldedit.extent.inventory.BlockBag;
 import com.sk89q.worldedit.function.mask.Mask;
+import com.sk89q.worldedit.history.browser.HistoryEntryInfo;
 import com.sk89q.worldedit.internal.cui.CUIEvent;
 import com.sk89q.worldedit.internal.cui.CUIRegion;
 import com.sk89q.worldedit.internal.cui.SelectionShapeEvent;
@@ -245,6 +246,13 @@ public class LocalSession {
             return;
         }
 
+        if (editSession.getHistoryInfo() == null) {
+            String[] description = new String[1];
+            Request.applyIfPresent(r -> description[0] = r.getDescription());
+            editSession.setHistoryInfo(HistoryEntryInfo.create(
+                description[0], System.currentTimeMillis()));
+        }
+
         // Destroy any sessions after this undo point
         while (historyPointer < history.size()) {
             history.removeLast();
@@ -314,6 +322,25 @@ public class LocalSession {
         }
 
         return null;
+    }
+
+    /**
+     * Get the edits in the in-memory undo history, oldest first.
+     *
+     * @return a copy of the history
+     */
+    public List<EditSession> getHistoryEntries() {
+        return new ArrayList<>(history);
+    }
+
+    /**
+     * Get how many edits of {@link #getHistoryEntries()} are not undone; the
+     * edits after them are undone and can be redone.
+     *
+     * @return the position in the history
+     */
+    public int getHistoryPosition() {
+        return Math.max(0, Math.min(historyPointer, history.size()));
     }
 
     /**
