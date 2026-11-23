@@ -28,10 +28,13 @@ import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.command.util.ShapeLibraryHolder;
 import com.sk89q.worldedit.entity.Player;
+import com.sk89q.worldedit.extension.input.InputParseException;
+import com.sk89q.worldedit.extension.input.ParserContext;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.function.generator.shape.BuiltinShapes;
 import com.sk89q.worldedit.function.generator.shape.NamedShape;
 import com.sk89q.worldedit.function.generator.shape.PresetShape;
+import com.sk89q.worldedit.function.generator.shape.ShapeArray;
 import com.sk89q.worldedit.function.generator.shape.ShapeFlags;
 import com.sk89q.worldedit.function.generator.shape.ShapeGenerator;
 import com.sk89q.worldedit.function.generator.shape.ShapeOrientation;
@@ -39,14 +42,17 @@ import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
 import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 import com.sk89q.worldedit.function.generator.shape.ShapeRasterizer;
 import com.sk89q.worldedit.function.generator.shape.VoxelGrid;
+import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.pattern.Pattern;
 import com.sk89q.worldedit.internal.annotation.Radii;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector3;
+import com.sk89q.worldedit.regions.selector.ShapeRegionSelector;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
 import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
 import com.sk89q.worldedit.util.formatting.text.format.TextColor;
+import com.sk89q.worldedit.world.World;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
@@ -58,6 +64,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.sk89q.worldedit.command.util.Logging.LogMode.PLACEMENT;
@@ -100,7 +108,10 @@ public class ShapeCommands {
         desc = "Generates a shape by name, such as heart, star, torus, knot or gyroid",
         descFooter = "Use //shapes to see every shape and //shapes <name> for its settings. "
             + "The size is the radius in blocks, or x,y,z radii to stretch it (e.g. 10,20,10). "
-            + "Settings are plain numbers, in order or as name=value, e.g. //shape star gold_block 12 points=6"
+            + "Settings are plain numbers, in order or as name=value, e.g. //shape star gold_block 12 points=6. "
+            + "Copies: -a 5 -l 30 (a line of 5, 30 blocks apart, the way you face), -a 8 -c 40 (a ring of 8), "
+            + "-a 12 -c 20 -s 4 (a spiral rising 4 blocks per copy). "
+            + "-m stone only changes stone; use air as the pattern to carve the shape out of terrain."
     )
     @CommandPermissions("worldedit.generation.shape.named")
     @Logging(PLACEMENT)
@@ -123,19 +134,40 @@ public class ShapeCommands {
                      @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                          double turn,
                      @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees (90 = on its side)", def = "0")
-                         double tilt) throws WorldEditException {
+                         double tilt,
+                     @ArgFlag(name = 'a', desc = "Build this many copies (in a line, or a ring with -c)", def = "0")
+                         double copies,
+                     @ArgFlag(name = 'l', desc = "Distance between copies in a line, the way you face", def = "0")
+                         double spacing,
+                     @ArgFlag(name = 'c', desc = "Put the copies in a ring of this radius around you", def = "0")
+                         double ringRadius,
+                     @ArgFlag(name = 's', desc = "Raise each copy by this many blocks (a spiral with -c)", def = "0")
+                         double rise,
+                     @ArgFlag(name = 'm', desc = "Only change blocks matching this mask, e.g. stone")
+                         Mask mask) throws WorldEditException {
         Vector3 radii;
         ShapeParameters parameters;
+        ShapeArray array;
         try {
             // flags typed after the settings end up in the settings list, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(settings, "hbf", "rt");
+            ShapeFlags flags = ShapeFlags.parse(settings, "hbf", "rtalcs", "m");
             hollow |= flags.has('h');
             bottom |= flags.has('b');
             faceMe |= flags.has('f');
             turn = flags.value('r', turn);
             tilt = flags.value('t', tilt);
+            copies = flags.value('a', copies);
+            spacing = flags.value('l', spacing);
+            ringRadius = flags.value('c', ringRadius);
+            rise = flags.value('s', rise);
+            Optional<String> maskInput = flags.text('m');
+            if (maskInput.isPresent()) {
+                mask = parseMask(actor, session, editSession, maskInput.get());
+            }
             radii = parseSize(size);
             parameters = ShapeParameters.parse(shape.getParameters(), flags.remaining());
+            double width = 2 * Math.max(radii.x(), Math.max(radii.y(), radii.z()));
+            array = ShapeArray.of(copies, spacing, ringRadius, rise, Math.ceil(width) + 2);
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));
             return 0;
@@ -146,27 +178,135 @@ public class ShapeCommands {
         }
         worldEdit.checkMaxRadius(Math.max(radii.x(), Math.max(radii.y(), radii.z())));
 
+        VoxelGrid voxels = voxelize(actor, shape, parameters, radii, hollow, faceMe, turn, tilt);
+        if (voxels == null) {
+            return 0;
+        }
+        BlockVector3 position = session.getPlacementPosition(actor);
+        List<BlockVector3> positions = new ArrayList<>();
+        for (BlockVector3 offset : array.offsets(facing(actor))) {
+            positions.add(position.add(offset));
+        }
+        int affected = ShapeGenerator.build(editSession, positions, pattern, voxels, bottom, mask);
+        if (actor instanceof Player player) {
+            player.findFreePosition();
+        }
+        String what = array.count() == 1 ? shape.getName() : array.count() + " x " + shape.getName();
+        actor.printInfo(TextComponent.of("Generated " + what + ": " + affected + " blocks changed."));
+        return affected;
+    }
+
+    @Command(
+        name = "/selshape",
+        aliases = { "/shapesel" },
+        desc = "Selects a named shape (heart, star, torus...) so //set, //replace, //count etc. work inside it",
+        descFooter = "Same size, settings and flags as //shape, without a pattern, e.g. //selshape heart 12 -f. "
+            + "Wand clicks (or //pos1) move the shape to the clicked block. "
+            + "The selection can be moved with //shift or //move -s, but not expanded."
+    )
+    @CommandPermissions("worldedit.selection.shape")
+    public void selectShape(Actor actor, World world, LocalSession session,
+                            @Arg(desc = "The shape (see //shapes)")
+                                NamedShape shape,
+                            @Arg(desc = "The radius, or x,y,z radii")
+                            @Radii(3)
+                                List<Double> size,
+                            @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
+                                List<String> settings,
+                            @Switch(name = 'h', desc = "Select only the outer layer")
+                                boolean hollow,
+                            @Switch(name = 'b', desc = "Put the bottom of the shape at your position instead of its middle")
+                                boolean bottom,
+                            @Switch(name = 'f', desc = "Turn the shape so its front faces you")
+                                boolean faceMe,
+                            @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
+                                double turn,
+                            @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees (90 = on its side)", def = "0")
+                                double tilt) throws WorldEditException {
+        Vector3 radii;
+        ShapeParameters parameters;
+        List<String> settingWords;
+        try {
+            ShapeFlags flags = ShapeFlags.parse(settings, "hbf", "rt");
+            hollow |= flags.has('h');
+            bottom |= flags.has('b');
+            faceMe |= flags.has('f');
+            turn = flags.value('r', turn);
+            tilt = flags.value('t', tilt);
+            radii = parseSize(size);
+            settingWords = flags.remaining();
+            parameters = ShapeParameters.parse(shape.getParameters(), settingWords);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        if (radii.x() < 1 || radii.y() < 1 || radii.z() < 1) {
+            actor.printError(TextComponent.of("Sizes must be at least 1"));
+            return;
+        }
+        VoxelGrid voxels = voxelize(actor, shape, parameters, radii, hollow, faceMe, turn, tilt);
+        if (voxels == null) {
+            return;
+        }
+        if (voxels.count() == 0) {
+            actor.printError(TextComponent.of("That shape has no blocks at this size; try making it bigger."));
+            return;
+        }
+        BlockVector3 position = session.getPlacementPosition(actor);
+        BlockVector3 anchorOffset = bottom ? BlockVector3.at(0, -voxels.lowestY(), 0) : BlockVector3.ZERO;
+        String description = shape.getName() + " " + formatSize(radii)
+            + (settingWords.isEmpty() ? "" : " " + String.join(" ", settingWords));
+        ShapeRegionSelector selector = new ShapeRegionSelector(world, voxels, position, anchorOffset, description);
+        session.setRegionSelector(world, selector);
+        session.dispatchCUISelection(actor);
+        actor.printInfo(TextComponent.of("Selected " + shape.getName() + " at " + position + ": "
+            + selector.getVolume() + " blocks. Wand clicks move it."));
+    }
+
+    @Nullable
+    private static VoxelGrid voxelize(Actor actor, NamedShape shape, ShapeParameters parameters, Vector3 radii,
+                                      boolean hollow, boolean faceMe, double turn, double tilt) {
         double yaw = turn;
         if (faceMe && actor instanceof Player player) {
             yaw += player.getLocation().getYaw();
         }
         ShapeOrientation orientation = new ShapeOrientation(yaw, tilt);
-
-        VoxelGrid voxels;
         try {
-            voxels = ShapeGenerator.voxelize(shape, parameters, radii, orientation, hollow,
+            return ShapeGenerator.voxelize(shape, parameters, radii, orientation, hollow,
                 ShapeRasterizer.DEFAULT_MAX_VOLUME);
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));
-            return 0;
+            return null;
         }
-        BlockVector3 position = session.getPlacementPosition(actor);
-        int affected = ShapeGenerator.build(editSession, position, pattern, voxels, bottom);
+    }
+
+    private static Vector3 facing(Actor actor) {
         if (actor instanceof Player player) {
-            player.findFreePosition();
+            return ShapeArray.facing(player.getLocation().getYaw(), player.getLocation().getPitch());
         }
-        actor.printInfo(TextComponent.of("Generated " + shape.getName() + ": " + affected + " blocks changed."));
-        return affected;
+        return ShapeArray.facing(Double.NaN, Double.NaN);
+    }
+
+    private static Mask parseMask(Actor actor, LocalSession session, EditSession editSession, String input) {
+        ParserContext context = new ParserContext();
+        context.setActor(actor);
+        context.setWorld(editSession.getWorld());
+        context.setExtent(editSession);
+        context.setSession(session);
+        context.setRestricted(true);
+        try {
+            return WorldEdit.getInstance().getMaskFactory().parseFromInput(input, context);
+        } catch (InputParseException e) {
+            throw new IllegalArgumentException("Bad mask '" + input + "': " + e.getMessage(), e);
+        }
+    }
+
+    private static String formatSize(Vector3 radii) {
+        if (radii.x() == radii.y() && radii.y() == radii.z()) {
+            return ShapeParameter.format(radii.x());
+        }
+        return ShapeParameter.format(radii.x()) + "," + ShapeParameter.format(radii.y()) + ","
+            + ShapeParameter.format(radii.z());
     }
 
     @Command(

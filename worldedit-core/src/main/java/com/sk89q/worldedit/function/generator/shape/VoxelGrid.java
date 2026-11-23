@@ -22,6 +22,7 @@ package com.sk89q.worldedit.function.generator.shape;
 import com.sk89q.worldedit.math.BlockVector3;
 
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -179,10 +180,23 @@ public final class VoxelGrid {
      */
     public void forEach(Consumer<BlockVector3> consumer) {
         for (int i = bits.nextSetBit(0); i >= 0; i = bits.nextSetBit(i + 1)) {
-            int x = i % sizeX + minX;
-            int z = (i / sizeX) % sizeZ + minZ;
-            int y = i / (sizeX * sizeZ) + minY;
-            consumer.accept(BlockVector3.at(x, y, z));
+            consumer.accept(offsetOf(i));
         }
+    }
+
+    /**
+     * Iterate over every voxel that is on, from the bottom up, without collecting them first.
+     *
+     * @return the offsets
+     */
+    public Iterator<BlockVector3> offsets() {
+        return bits.stream().mapToObj(this::offsetOf).iterator();
+    }
+
+    private BlockVector3 offsetOf(int index) {
+        int x = index % sizeX + minX;
+        int z = (index / sizeX) % sizeZ + minZ;
+        int y = index / (sizeX * sizeZ) + minY;
+        return BlockVector3.at(x, y, z);
     }
 }

@@ -26,7 +26,7 @@ import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
-import com.sk89q.worldedit.util.Location;
+import com.sk89q.worldedit.util.LongRangeTrace;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import org.enginehub.piston.annotation.Command;
@@ -155,13 +155,15 @@ public class NavigationCommands {
     )
     @CommandPermissions("worldedit.navigation.jumpto.command")
     public void jumpTo(Player player) throws WorldEditException {
-
-        Location pos = player.getSolidBlockTrace(300);
-        if (pos != null) {
-            player.findFreePosition(pos);
-            player.printInfo(TranslatableComponent.of("worldedit.jumpto.moved"));
-        } else {
+        int maxDistance = Math.max(1, worldEdit.getConfiguration().jumptoMaxDistance);
+        LongRangeTrace.Hit hit = LongRangeTrace.jump(player, maxDistance);
+        if (hit == null) {
             player.printError(TranslatableComponent.of("worldedit.jumpto.none"));
+        } else if (hit.estimated()) {
+            player.printInfo(TextComponent.of("Whoosh! (" + (int) hit.distance()
+                + " blocks; that terrain had not been generated yet, so it was generated now)"));
+        } else {
+            player.printInfo(TranslatableComponent.of("worldedit.jumpto.moved"));
         }
     }
 

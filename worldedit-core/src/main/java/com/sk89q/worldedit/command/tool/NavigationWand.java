@@ -24,7 +24,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extension.platform.Platform;
-import com.sk89q.worldedit.util.Location;
+import com.sk89q.worldedit.util.LongRangeTrace;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 
 public class NavigationWand implements DoubleActionTraceTool {
@@ -41,10 +41,7 @@ public class NavigationWand implements DoubleActionTraceTool {
         if (maxDist <= 0) {
             return false;
         }
-        Location pos = player.getSolidBlockTrace(maxDist);
-        if (pos != null) {
-            player.findFreePosition(pos);
-        } else {
+        if (LongRangeTrace.jump(player, maxDist) == null) {
             player.printError(TranslatableComponent.of("worldedit.jumpto.none"));
         }
         return true;

@@ -343,6 +343,11 @@ public class BukkitWorld extends AbstractWorld {
     }
 
     @Override
+    public boolean isChunkGenerated(int chunkX, int chunkZ) {
+        return getWorld().isChunkGenerated(chunkX, chunkZ);
+    }
+
+    @Override
     public void checkLoadedChunk(BlockVector3 pt) {
         World world = getWorld();
 

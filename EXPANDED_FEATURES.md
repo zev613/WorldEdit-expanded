@@ -133,8 +133,8 @@ are chunks players have spent at least `--min-inhabited` ticks in (default 1200 
 
 ## Shapes by name (no formulas)
 
-`//shape <name> <pattern> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees]` builds a shape around your
-position by name. You never type a formula: every setting is a plain number with a sensible default.
+`//shape <name> <pattern> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees] [-m mask] [-a count [-l spacing | -c radius] [-s rise]]`
+builds a shape around your position by name. You never type a formula: every setting is a plain number with a sensible default.
 
 * **size** is the radius in blocks (like `//sphere`), or `x,y,z` radii to stretch it, e.g. `10,25,10` for something tall.
 * **settings** are numbers, either in order (`//shape star gold_block 10 6`) or by name (`//shape star gold_block 10 points=6`).
@@ -144,6 +144,40 @@ position by name. You never type a formula: every setting is a plain number with
 * `//shapes` lists every shape (click one), and `//shapes <name>` shows its settings, their ranges and an example.
 * `/brush shape <name> <pattern> [radius] [settings]` stamps the shape wherever you click.
 * `//undo` works as usual.
+
+**Carving and masks.** Use `air` as the pattern to carve the shape out of terrain instead of building it, and
+`-m <mask>` so that only blocks matching the mask are changed. For example `//shape torus air 20 -m stone` bores a
+ring-shaped tunnel through stone but leaves ores, water and the sky alone, and `//shape heart red_wool 10 -m air`
+builds a heart without replacing anything already there. Any WorldEdit mask works (`-m !air`, `-m #existing`, ...).
+
+**Copies (arrays).** `-a <count>` builds several copies in one go, all in one edit, so a single `//undo` removes them all:
+
+| Flags | What you get |
+|---|---|
+| `-a 5 -l 30` | A line of 5 copies, 30 blocks apart, going the way you face (straight up or down if you look steeply up or down). A negative spacing goes backwards. Without `-l` or `-c` the copies are spaced by the shape's width plus a small gap. |
+| `-a 8 -c 40` | A ring of 8 copies, 40 blocks from your position, starting in front of you. |
+| `-a 12 -c 20 -s 4` | A rising spiral: a ring whose copies climb 4 blocks each. With `-l`, `-s` makes a staircase instead. |
+
+Example: `//shape star gold_block 5 -f -a 6 -c 25 -s 3`. `-l` and `-c` can't be combined, and `-l`, `-c` and `-s`
+need `-a`. At most 1000 copies. When the command is not run by a player (e.g. from the console), lines go east.
+All of these flags may be typed before or after the settings.
+
+**Selecting a shape.** `//selshape <name> <size> [settings] [-h] [-b] [-f] [-r degrees] [-t degrees]`
+(alias `//shapesel`) selects exactly the blocks of the shape, centred on your position (or with its bottom there,
+with `-b`). Then `//set`, `//replace`, `//walls`, `//faces`, `//smooth`, `//count`, `//distr`, `//copy` and other
+selection commands work inside the heart, star or torus: `//selshape heart 12 -f` then `//replace stone red_wool`.
+`-h` selects only the outer layer.
+
+* This is a separate command rather than `//sel shape` because `//sel` only takes the name of a selector,
+  while a shape also needs a size and settings.
+* Clicking with the wand (either button), or `//pos1` / `//pos2`, moves the shape so it is centred on the clicked
+  block. To go back to normal two-point selections, use `//sel cuboid`, which also turns the shape into its
+  bounding box.
+* `//shift` and `//move -s` move the shape selection. `//expand`, `//contract`, `//outset` and `//inset` don't
+  work on it (you get a message); select the shape again with another size instead.
+* `//size` shows the shape, where it is, its bounding box and the exact number of blocks. WorldEdit CUI shows the
+  bounding box.
+* `//sel` clears it until your next wand click, which places the same shape again.
 
 | Group | Shapes (aliases in brackets) |
 |---|---|
@@ -180,6 +214,113 @@ More examples: `//shape knot stone 20 loops=3 winds=5`, `//shape tower quartz_bl
 | `//shapedef list` | List presets (they also show up in `//shapes`). |
 
 Presets are shared by everyone on the server and saved in `shape-presets.txt` in WorldEdit's config folder.
+
+## Long-distance /jumpto
+
+`/jumpto` (and right-clicking with the navigation compass) now reaches anything you can see, up to 2048 blocks away
+by default, instead of stopping at 300 blocks.
+
+* It follows your crosshair block by block, so it can't slip through a thin wall or corner.
+* Chunks that aren't loaded but already exist are read from disk. Chunks that have **never been generated**
+  (for example far-away terrain drawn by a distant-terrain mod such as Distant Horizons) aren't generated just to
+  look through them. Instead the world generator's terrain height is used to find where your crosshair meets the
+  ground, and only the chunk you land in is generated. This ignores trees and buildings there, because they don't
+  exist yet. On Bukkit/Paper, never-generated chunks are looked through, since there's no way to ask the generator
+  for the height.
+* Set the range with `jumpto-max-distance` in `worldedit.properties` (or `navigation.jumpto-max-distance` in
+  `config.yml`). The compass still uses its own `nav-wand-distance` (default 50), so raise that too if you want
+  the compass to reach as far.
+
+## Warping the selection by name (no formulas)
+
+`//warp <name> [settings] [-c]` reshapes everything in your selection: twist it, bend it, make it wavy, melt it.
+It replaces `//deform` formulas. Settings are plain numbers (angles in degrees) with defaults, given in order
+(`//warp wave 4 20`) or by name (`//warp wave amplitude=4 wavelength=20`). Axis settings take `x`, `y`, `z` or `auto`.
+
+* Each block takes the original block from where the warp says it came from, so leave some empty room around the
+  thing you warp (e.g. select a tower plus a few blocks of air to each side before leaning it).
+* Anything that would come from outside the selection becomes air. `-c` pulls in the real blocks from outside
+  instead, which suits terrain.
+* `//warps` lists the warps, and `//warps <name>` shows the settings, their ranges and an example.
+* `//undo` works as usual.
+
+| Warp (aliases) | Settings (defaults) | Example |
+|---|---|---|
+| `twist` (spin, corkscrew) | `angle` 90: degrees the top turns, clockwise seen from above; the bottom stays put | `//warp twist 180` |
+| `bend` (curve, arc) | `angle` 90, `axis` auto (the longer side, x or z), `vertical` 0 (1 = bend up/down; negative angle makes an arch) | `//warp bend -120 vertical=1` |
+| `taper` (narrow, pinch) | `top` 0.5 and `bottom` 1: width at the top and bottom as a share of the original | `//warp taper 0.2` |
+| `wave` (waves, ripple) | `amplitude` 3 blocks, `wavelength` 16 blocks, `axis` auto (`y` wiggles it sideways going up), `phase` 0 degrees | `//warp wave 4 20 x` |
+| `shear` (lean, slant) | `angle` 30 degrees from upright, `axis` auto (x or z) | `//warp shear 20 z` |
+| `spherize` (round, ball) | `amount` 1 (0 = no change, 1 = a ball that fits the selection, negative = boxier) | `//warp spherize 0.7` |
+| `inflate` (puff, bulge) | `amount` 3 blocks to push out from the middle (negative pulls in) | `//warp inflate 2` |
+| `melt` (droop, sag) | `amount` 0.5, `noise` 0.5 (uneven drips), `spread` 0.5 (puddle at the bottom), `seed` 0 | `//warp melt 0.7 noise=0.9 seed=5` |
+
+To mirror or flip, use the existing `//flip` and `//rotate` on a copy.
+
+## Layout patterns (no formulas)
+
+These patterns mix two or more block patterns in a layout. Inside the brackets list the block patterns (any pattern
+works, including block states such as `oak_log[axis=x]`), then the settings: plain numbers in order, `name=value`, or
+`x`/`y`/`z` for the axis. All but `#bricks` and `#dither` take more than two blocks and cycle through them.
+
+| Pattern | Settings (defaults) | Example |
+|---|---|---|
+| `#stripes[a,b,...]` | `width` 1, `axis` y (y = flat layers, x/z = upright stripes) | `//set #stripes[white_wool,red_wool,2,x]` |
+| `#checker[a,b,...]` | `size` 1 (cubes, so it works on walls and floors) | `//set #checker[black_concrete,white_concrete,2]` |
+| `#rings[a,b,...]` | `width` 2, `axis` y (rings seen from above) | `//set #rings[stone,andesite,diorite,3]` |
+| `#spiral[a,b,...]` | `arms` 1 per block, `curl` 16 (blocks an arm moves out per turn; 0 = spokes), `axis` y | `//set #spiral[white_wool,black_wool,3]` |
+| `#diagonal[a,b,...]` | `width` 1 | `//set #diagonal[yellow_concrete,black_concrete,2]` |
+| `#bricks[brick,mortar]` | `length` 3, `height` 1, `axis` y (rows stack along it; x or z to pave a floor) | `//set #bricks[bricks,smooth_stone,4,2]` |
+| `#dither[a,b]` | `mix` (share of `b`, 0 to 1), `axis` y | `//set #dither[stone,grass_block]` |
+
+* Rings and spirals are centred on the middle of your selection; with no selection, on your position.
+* Bricks run in a running bond: 1-block mortar lines between rows, and each row is shifted by half a brick. They
+  follow both x and z, so the corners of a building line up.
+* `#dither[a,b]` blends evenly from `a` at the bottom of the selection to `b` at the top using an ordered (Bayer)
+  dither; `#dither[a,b,x]` blends along x instead, and `#dither[a,b,0.3]` mixes in a fixed 30% of `b` everywhere
+  (no selection needed).
+
+## Building parts, block letters and pixel art
+
+Like `//shape`, these take names and plain numbers only (angles in degrees), and everything can be `//undo`ne.
+"Facing you" means the cardinal direction you are looking in (north if a console or script runs the command).
+
+**`//build <part> <pattern> [settings] [-w pattern] [-s stair block]`** builds a ready-made part at your placement
+position. Settings are numbers in order or `name=value`; `//builds` lists the parts (click one) and `//builds <part>`
+shows its settings, ranges and an example. `-w` fills windows, panes and railings; `-s` adds stairs to spiral steps.
+Flags can go before or after the settings.
+
+| Part (aliases) | Settings (defaults) | Notes |
+|---|---|---|
+| `spiralstair` (spiral) | `radius 4`, `height 16` steps, `turns 1`, `pole 1`, `clockwise 1` | First step is in front of you. `-s oak_stairs` puts stairs, facing up the spiral, on the front edge of each step. |
+| `dome` (cupola) | `radius 10`, `thickness 1`, `windows 0` | Half sphere; windows round the bottom, filled with `-w` (default glass). |
+| `tower` (turret) | `radius 4`, `height 20`, `battlements 1`, `windows 4` per floor, `floors 5` (blocks apart, 0 = none), `thickness 1` | Each floor has a hatch by the wall; windows `-w` (default glass, `-w air` for openings). |
+| `wall` (castlewall) | `height 6`, `thickness 2`, `crenellations 1` | Runs from `//pos1` to `//pos2`, following the slope between them. |
+| `column` (pillar) | `radius 1`, `height 10` | Square plinth and abacus, round rings at the base and capital. |
+| `roundwindow` (rosewindow) | `radius 6`, `spokes 8`, `depth 1`, `ring 1` | Upright, centred on the placement position, facing you. Panes `-w` (default glass). |
+| `bridge` (archbridge) | `width 3`, `arch 4`, `railings 1`, `thickness 1` | Arched deck from `//pos1` to `//pos2`; railings use `-w` (e.g. `-w oak_fence`) or the main pattern. |
+
+```
+//build spiralstair oak_planks radius=5 height=24 turns=1.5 -s oak_stairs
+//build tower stone_bricks 6 30 windows=6 -w glass_pane
+//build dome white_concrete radius=12 windows=8 -w light_blue_stained_glass
+//build wall cobblestone height=8 thickness=3        (after //pos1 and //pos2 at the two ends)
+//build bridge oak_planks width=5 arch=6 -w oak_fence (after //pos1 and //pos2 on the two banks)
+//build roundwindow stone_bricks 8 spokes=12 -w red_stained_glass
+```
+
+**`//text <pattern> <text> [-s scale] [-d depth] [-f]`** builds block letters (built-in 5x7 font: A-Z, 0-9 and
+`. , ! ? : ; ' " - + = / \ ( ) [ ] _ # & * < > @ % $ ^ |`; lower case is built as capitals, other characters as `?`).
+The text starts at your placement position and reads left to right as you look at it. `-s 2` makes every pixel
+2x2 blocks, `-d 3` makes the letters 3 blocks thick, `-f` lays it flat on the ground (top of the letters away from you).
+Example: `//text red_wool Welcome! -s 2 -d 2`.
+
+**`//image <file> [width] [-f] [-p palette]`** builds pixel art from a PNG/JPG/GIF/BMP in the `images` folder inside
+WorldEdit's folder (`//image list` shows them). It is resized to `width` blocks wide (default: the image width, at most 128),
+keeping its shape, and each pixel becomes the block whose colour looks closest (CIEDE2000 colour difference); transparent
+pixels are skipped. It stands upright facing you with its bottom-left corner at the placement position; `-f` lays it flat.
+Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
+with commas. Example: `//image logo.png 64 -p wool,concrete`.
 
 ## New commands
 
@@ -221,5 +362,6 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
+`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.

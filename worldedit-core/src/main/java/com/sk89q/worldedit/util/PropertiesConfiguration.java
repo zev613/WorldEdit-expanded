@@ -115,6 +115,7 @@ public class PropertiesConfiguration extends LocalConfiguration {
         useInventoryCreativeOverride = getBool("use-inventory-creative-override", useInventoryCreativeOverride);
         navigationWand = convertLegacyItem(getString("nav-wand-item", navigationWand)).toLowerCase(Locale.ROOT);
         navigationWandMaxDistance = getInt("nav-wand-distance", navigationWandMaxDistance);
+        jumptoMaxDistance = getInt("jumpto-max-distance", jumptoMaxDistance);
         navigationUseGlass = getBool("nav-use-glass", navigationUseGlass);
         scriptTimeout = getInt("scripting-timeout", scriptTimeout);
         calculationTimeout = getInt("calculation-timeout", calculationTimeout);
