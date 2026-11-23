@@ -27,6 +27,7 @@ import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.command.tool.BlockTool;
+import com.sk89q.worldedit.command.tool.BrushTool;
 import com.sk89q.worldedit.command.tool.DoubleActionBlockTool;
 import com.sk89q.worldedit.command.tool.DoubleActionTraceTool;
 import com.sk89q.worldedit.command.tool.Tool;
@@ -55,6 +56,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -441,6 +443,7 @@ public class PlatformManager {
             Request request = Request.request();
             request.setSession(session);
             request.setWorld(player.getWorld());
+            request.setDescription(describeTool(session.getTool(player.getItemInHand(HandSide.MAIN_HAND).getType())));
 
             if (event.getType() == Interaction.HIT) {
                 // superpickaxe is special because its primary interaction is a left click, not a right click
@@ -448,6 +451,7 @@ public class PlatformManager {
                 if (session.hasSuperPickAxe() && player.isHoldingPickAxe()) {
                     final BlockTool superPickaxe = session.getSuperPickaxe();
                     if (superPickaxe != null && superPickaxe.canUse(player)) {
+                        request.setDescription("super pickaxe");
                         if (superPickaxe.actPrimary(queryCapability(Capability.WORLD_EDITING),
                                 getConfiguration(), player, session, location, event.getFace())) {
                             event.setCancelled(true);
@@ -486,6 +490,7 @@ public class PlatformManager {
             Request request = Request.request();
             request.setSession(session);
             request.setWorld(player.getWorld());
+            request.setDescription(describeTool(session.getTool(player.getItemInHand(HandSide.MAIN_HAND).getType())));
 
             exhaustive(switch (event.getInputType()) {
                 case PRIMARY -> {
@@ -514,5 +519,30 @@ public class PlatformManager {
         });
     }
 
+    /**
+     * Describe a tool for the undo history, e.g. "brush (sphere)".
+     *
+     * @param tool the tool, or null
+     * @return the description
+     */
+    static String describeTool(@Nullable Tool tool) {
+        if (tool == null) {
+            return "tool";
+        }
+        if (tool instanceof BrushTool brushTool && brushTool.getBrush() != null) {
+            return "brush (" + shortClassName(brushTool.getBrush().getClass(), "Brush") + ")";
+        }
+        return "tool (" + shortClassName(tool.getClass(), "Tool") + ")";
+    }
 
+    private static String shortClassName(Class<?> type, String suffix) {
+        String name = type.getSimpleName();
+        if (name.isEmpty()) {
+            name = type.getName().substring(type.getName().lastIndexOf('.') + 1);
+        }
+        if (name.endsWith(suffix) && name.length() > suffix.length()) {
+            name = name.substring(0, name.length() - suffix.length());
+        }
+        return name.toLowerCase(Locale.ROOT);
+    }
 }
