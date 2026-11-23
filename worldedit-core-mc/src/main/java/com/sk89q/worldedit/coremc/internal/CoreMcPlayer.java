@@ -44,6 +44,8 @@ import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityTypes;
 import org.enginehub.linbus.tree.LinCompoundTag;
@@ -218,6 +220,28 @@ public class CoreMcPlayer extends AbstractPlayerActor {
     @Override
     public boolean isAllowedToFly() {
         return player.getAbilities().mayfly;
+    }
+
+    /** Vanilla's normal walking speed (movement speed attribute and walking-speed ability). */
+    private static final float NORMAL_WALK_SPEED = 0.1F;
+    /** Vanilla's normal flying speed. */
+    private static final float NORMAL_FLY_SPEED = 0.05F;
+
+    @Override
+    public boolean setSpeedFactor(double walk, double fly) {
+        if (!Double.isNaN(walk)) {
+            AttributeInstance movement = player.getAttribute(Attributes.MOVEMENT_SPEED);
+            if (movement != null) {
+                movement.setBaseValue(NORMAL_WALK_SPEED * walk);
+            }
+            // scaling the walking-speed ability too keeps the client's view from zooming in or out
+            player.getAbilities().setWalkingSpeed((float) (NORMAL_WALK_SPEED * walk));
+        }
+        if (!Double.isNaN(fly)) {
+            player.getAbilities().setFlyingSpeed((float) (NORMAL_FLY_SPEED * fly));
+        }
+        player.onUpdateAbilities();
+        return true;
     }
 
     @Override

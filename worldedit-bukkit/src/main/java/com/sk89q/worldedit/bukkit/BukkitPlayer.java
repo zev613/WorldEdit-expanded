@@ -212,6 +212,27 @@ public class BukkitPlayer extends AbstractPlayerActor {
         player.setFlying(flying);
     }
 
+    // Bukkit's normal speeds; it accepts at most 1, i.e. 5x walking and 10x flying
+    private static final float NORMAL_WALK_SPEED = 0.2F;
+    private static final float NORMAL_FLY_SPEED = 0.1F;
+
+    @Override
+    public boolean setSpeedFactor(double walk, double fly) {
+        if (!Double.isNaN(walk)) {
+            player.setWalkSpeed((float) Math.min(1, NORMAL_WALK_SPEED * walk));
+        }
+        if (!Double.isNaN(fly)) {
+            player.setFlySpeed((float) Math.min(1, NORMAL_FLY_SPEED * fly));
+        }
+        return true;
+    }
+
+    @Override
+    public double getMaxSpeedFactor() {
+        // walking tops out at 1 / 0.2 = 5x normal
+        return 1 / NORMAL_WALK_SPEED;
+    }
+
     @Override
     public BaseEntity getState() {
         throw new UnsupportedOperationException("Cannot create a state from this object");

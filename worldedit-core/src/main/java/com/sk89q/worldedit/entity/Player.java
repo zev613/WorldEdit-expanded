@@ -118,6 +118,32 @@ public interface Player extends Entity, Actor {
     void findFreePosition(Location searchPos);
 
     /**
+     * Change how fast the player walks and flies, as a multiple of the normal speed.
+     * The change lasts until it is changed again (it is saved with the player).
+     *
+     * @param walk multiple of the normal walking speed, or {@link Double#NaN} to leave it alone
+     * @param fly multiple of the normal flying speed, or {@link Double#NaN} to leave it alone
+     * @return false if this platform cannot change player speed
+     */
+    default boolean setSpeedFactor(double walk, double fly) {
+        return false;
+    }
+
+    /**
+     * The largest speed factor this platform can apply.
+     *
+     * @return the largest factor
+     */
+    default double getMaxSpeedFactor() {
+        return SPEED_FACTOR_LIMIT;
+    }
+
+    /**
+     * The largest speed factor accepted on any platform.
+     */
+    double SPEED_FACTOR_LIMIT = 20;
+
+    /**
      * Set the actor on the ground.
      *
      * @param searchPos The location to start searching from

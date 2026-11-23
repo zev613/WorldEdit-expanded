@@ -34,6 +34,8 @@ import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
 import org.enginehub.piston.annotation.param.Switch;
 
+import java.util.Locale;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.sk89q.worldedit.command.util.Logging.LogMode.POSITION;
 
@@ -110,6 +112,55 @@ public class NavigationCommands {
         } else {
             player.printInfo(TranslatableComponent.of("worldedit.descend.moved", TextComponent.of(descentLevels)));
         }
+    }
+
+    @Command(
+        name = "speed",
+        desc = "Set how fast you walk and fly, as a multiple of normal speed",
+        descFooter = "Examples: /speed 3 (three times as fast), /speed 0.5 (half speed), /speed reset. "
+            + "-w changes only walking, -f only flying. The speed stays until you change it."
+    )
+    @CommandPermissions("worldedit.navigation.speed")
+    public void speed(Player player,
+                      @Arg(desc = "How many times normal speed (1 = normal), or reset", def = "reset")
+                          String factor,
+                      @Switch(name = 'w', desc = "Only change walking speed")
+                          boolean walkOnly,
+                      @Switch(name = 'f', desc = "Only change flying speed")
+                          boolean flyOnly) {
+        double value;
+        String text = factor.trim().toLowerCase(Locale.ROOT);
+        if (text.equals("reset") || text.equals("normal") || text.equals("default")) {
+            value = 1;
+        } else {
+            try {
+                value = Double.parseDouble(text.endsWith("x") ? text.substring(0, text.length() - 1) : text);
+            } catch (NumberFormatException _) {
+                player.printError(TextComponent.of("'" + factor + "' is not a number. Use e.g. /speed 2, /speed 0.5 or /speed reset."));
+                return;
+            }
+        }
+        double max = Math.min(Player.SPEED_FACTOR_LIMIT, player.getMaxSpeedFactor());
+        if (!Double.isFinite(value) || value < 0.1 || value > max) {
+            player.printError(TextComponent.of("The speed must be between 0.1 and " + formatFactor(max) + " (1 = normal)."));
+            return;
+        }
+        boolean walk = !flyOnly || walkOnly;
+        boolean fly = !walkOnly || flyOnly;
+        if (!player.setSpeedFactor(walk ? value : Double.NaN, fly ? value : Double.NaN)) {
+            player.printError(TextComponent.of("Changing your speed isn't supported on this platform."));
+            return;
+        }
+        String what = walk && fly ? "Walking and flying speed" : walk ? "Walking speed" : "Flying speed";
+        if (value == 1) {
+            player.printInfo(TextComponent.of(what + " back to normal."));
+        } else {
+            player.printInfo(TextComponent.of(what + " set to " + formatFactor(value) + "x normal. Use /speed reset to go back."));
+        }
+    }
+
+    private static String formatFactor(double value) {
+        return value == Math.rint(value) ? Long.toString((long) value) : String.valueOf(value);
     }
 
     @Command(
