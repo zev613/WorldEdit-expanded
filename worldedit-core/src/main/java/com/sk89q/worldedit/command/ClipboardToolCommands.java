@@ -252,7 +252,7 @@ public class ClipboardToolCommands {
 
     private static boolean isGround(BlockState state) {
         BlockMaterial material = state.getBlockType().getMaterial();
-        return !material.isAir() && (material.isMovementBlocker() || material.isLiquid());
+        return !material.isAir() && (material.isSolid() || material.isLiquid());
     }
 
     /**

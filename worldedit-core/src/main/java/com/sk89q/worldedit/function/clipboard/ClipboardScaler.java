@@ -19,7 +19,6 @@
 
 package com.sk89q.worldedit.function.clipboard;
 
-import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -47,10 +46,8 @@ public final class ClipboardScaler {
      * @param solidFraction see {@link ScaleResampler#resample}
      * @param maxVolume the largest result allowed
      * @return the scaled clipboard
-     * @throws WorldEditException if copying fails
      */
-    public static Clipboard scale(Clipboard clipboard, double[] factor, double solidFraction, long maxVolume)
-        throws WorldEditException {
+    public static Clipboard scale(Clipboard clipboard, double[] factor, double solidFraction, long maxVolume) {
         BlockVector3 origin = clipboard.getOrigin();
         BlockVector3 lo = clipboard.getRegion().getMinimumPoint().subtract(origin);
         BlockVector3 hi = clipboard.getRegion().getMaximumPoint().subtract(origin);
@@ -71,22 +68,11 @@ public final class ClipboardScaler {
             }
             return ids.computeIfAbsent(state, _ -> ids.size() + 1);
         };
-        WorldEditException[] failure = new WorldEditException[1];
         resampler.resample(source, solidFraction, (dx, dy, dz, sx, sy, sz, primary) -> {
-            if (failure[0] != null) {
-                return;
-            }
             BlockVector3 from = origin.add(sx, sy, sz);
-            try {
-                result.setBlock(origin.add(dx, dy, dz),
-                    primary ? clipboard.getFullBlock(from) : clipboard.getBlock(from).toBaseBlock());
-            } catch (WorldEditException e) {
-                failure[0] = e;
-            }
+            result.setBlock(origin.add(dx, dy, dz),
+                primary ? clipboard.getFullBlock(from) : clipboard.getBlock(from).toBaseBlock());
         });
-        if (failure[0] != null) {
-            throw failure[0];
-        }
         return result;
     }
 }

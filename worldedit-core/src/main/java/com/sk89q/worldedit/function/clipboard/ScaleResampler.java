@@ -112,7 +112,7 @@ public final class ScaleResampler {
      * @return factors for x, y and z
      */
     public static double[] parseFactor(String text) {
-        String[] parts = text.trim().split("\\s*[,;]\\s*");
+        String[] parts = text.trim().split("\\s*[,;]\\s*", -1);
         double[] result = new double[3];
         try {
             if (parts.length == 1) {
@@ -172,7 +172,14 @@ public final class ScaleResampler {
     /**
      * Source cells (and their weights) that a destination cell covers along one axis.
      */
-    private record AxisSamples(int[] cells, double[] weights) {
+    private static final class AxisSamples {
+        private final int[] cells;
+        private final double[] weights;
+
+        AxisSamples(int[] cells, double[] weights) {
+            this.cells = cells;
+            this.weights = weights;
+        }
     }
 
     private AxisSamples[] samplesFor(int axis) {
