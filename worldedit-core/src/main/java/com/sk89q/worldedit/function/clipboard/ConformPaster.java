@@ -77,7 +77,7 @@ public final class ConformPaster {
     }
 
     private boolean skipped(BaseBlock block) {
-        return block.getBlockType() == BlockTypes.STRUCTURE_VOID && !pasteStructureVoid
+        return (block.getBlockType() == BlockTypes.STRUCTURE_VOID && !pasteStructureVoid)
             || WorldDiff.isAir(block.toImmutableState());
     }
 
@@ -171,8 +171,8 @@ public final class ConformPaster {
                         bottom = block;
                         bottomY = y;
                     }
-                    if (block.getBlockType() == BlockTypes.STRUCTURE_VOID && !pasteStructureVoid
-                        || ignoreAir && WorldDiff.isAir(block.toImmutableState())) {
+                    if ((block.getBlockType() == BlockTypes.STRUCTURE_VOID && !pasteStructureVoid)
+                        || (ignoreAir && WorldDiff.isAir(block.toImmutableState()))) {
                         continue;
                     }
                     if (world.setBlock(source.add(offset).add(0, shift, 0), block)) {
