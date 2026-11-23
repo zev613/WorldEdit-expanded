@@ -285,7 +285,7 @@ public class ClipboardToolCommands {
                 .add(clipboard.getRegion().getMinimumPoint().subtract(clipboard.getOrigin()));
         }
         BlockVector3 size = clipboard.getDimensions();
-        boolean turning = randomTurn || !seed.isEmpty();
+        boolean turning = randomTurn || (seed != null && !seed.isEmpty());
         long seedValue = 0;
         List<GridLayout.Cell> cells;
         int[] forward = actor instanceof Player ? GridLayout.forwardFromYaw(yawOf(actor)) : new int[] { 0, 1 };

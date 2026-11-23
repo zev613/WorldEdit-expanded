@@ -77,11 +77,19 @@ class PlacementMathTest {
     }
 
     @Test
-    void smoothingStaysWithinOneOfTheTerrain() {
+    void singleDipIsNeverBridged() {
+        // lifting the column would leave it floating, so it stays in the dip
+        int[][] raw = new int[5][3];
+        raw[2][1] = -1;
+        assertEquals(-1, ConformOffsets.smooth(raw, 1)[2][1]);
+    }
+
+    @Test
+    void smoothingNeverLiftsAndSinksAtMostOne() {
         int[][] raw = { { 0, 0, 0, 10, 10, 10 } };
         int[][] smooth = ConformOffsets.smooth(raw, 3);
         for (int i = 0; i < raw[0].length; i++) {
-            assertTrue(Math.abs(smooth[0][i] - raw[0][i]) <= 1, "column " + i);
+            assertTrue(smooth[0][i] <= raw[0][i] && smooth[0][i] >= raw[0][i] - 1, "column " + i);
         }
     }
 

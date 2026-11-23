@@ -29,9 +29,10 @@ import java.util.Deque;
  * <p>The input is the raw shift of every column: how many blocks the column must move so the
  * clipboard's bottom layer sits on the ground there, or {@link #MISSING} when no ground was
  * found. Missing columns take the shift of the nearest column that has one. The shifts are then
- * smoothed by averaging over a square of the given radius, rounded, and kept within one block of
- * the raw shift, so a wide road does not get jagged steps from single-block bumps, but never
- * drifts away from the terrain.</p>
+ * smoothed by averaging over a square of the given radius and rounding, but a column is never
+ * raised above its raw shift (so nothing floats) and never lowered by more than one block (it may
+ * sink one block into a bump). A wide road then loses single-block bumps and stays on the
+ * terrain everywhere.</p>
  */
 public final class ConformOffsets {
 
@@ -87,7 +88,7 @@ public final class ConformOffsets {
 
     /**
      * Smooth shifts: each column takes the rounded average of the columns within {@code radius}
-     * (a square), but stays within one block of its own shift.
+     * (a square), but never more than its own shift and never less than one below it.
      *
      * @param shifts the shifts without missing columns, indexed [x][z]
      * @param radius the smoothing radius, 0 for none
@@ -116,7 +117,7 @@ public final class ConformOffsets {
                 }
                 int mean = (int) Math.floor((double) sum / count + 0.5);
                 int own = shifts[x][z];
-                out[x][z] = Math.max(own - 1, Math.min(own + 1, mean));
+                out[x][z] = Math.max(own - 1, Math.min(own, mean));
             }
         }
         return out;

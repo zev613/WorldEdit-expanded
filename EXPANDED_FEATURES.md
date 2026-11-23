@@ -548,6 +548,37 @@ largest connected piece is kept. Types can be given by name.
 //coral tube_coral_block,horn_coral_block 6 tubes seed=3
 ```
 
+## Pasting onto terrain and in grids
+
+**`//paste -c [-r radius] [-f] [-w]`** (conform paste) makes every vertical column of the clipboard follow the
+terrain under it, so roads, paths, walls, fences and gardens drape over hills instead of floating or being buried.
+The clipboard's bottom layer (its lowest layer that has any non-air block) is put on the ground in every column, and
+the rest of that column moves with it, so things that float above the bottom layer in the clipboard (an arch, a lamp
+arm) keep their height above it. Each column rests on the ground surface nearest to where a plain `//paste` would put
+it: if that spot is inside the ground it climbs to the top, otherwise it looks down. Ground is any solid block except
+leaves, logs and other tree parts, and snow layers; grass, flowers and air are skipped. Water is not ground (a path
+across a river goes along the river bed); with `-w` water surfaces count as ground, so the path crosses on top. The
+column heights are smoothed over `-r` blocks around each column (default 1, 0 = follow the terrain exactly, at most
+8), so a 3-wide road loses single-block bumps, but a column is never lifted above the ground (nothing floats) and
+sinks at most one block into it (it replaces a bump's top block). `-f` fills any air under the bottom block of each
+column down to the ground with that block, e.g. under the doorway of a wall or under columns whose own bottom is
+higher than the clipboard's bottom layer. Works with `-a`, `-k <name>`, `-s`/`-n`, `-v`, `//rotate` and `//flip`, and
+is one `//undo`. `-m` works unless the clipboard is rotated or flipped; `-e` and `-b` are ignored with `-c`. Columns
+with no ground at all (off the edge of the world) take the height of the nearest column that has ground. Example:
+copy a 3-wide, 1-high strip of path blocks, then `//paste -c -a` across a hill.
+
+**`//grid <columns> <rows> [spacing] [row spacing] [-s] [-a] [-r] [-d seed] [-g] [-y rise] [-k name]`** repeats the
+clipboard in a grid on the ground plane: `columns` copies to your right and `rows` copies away from you (along the
+nearest world axis; from the console, columns go along +x and rows along +z). `spacing` is the gap in blocks between
+copies (default 0 = touching); the row spacing defaults to the same. Example: copy a 20x20 city block and
+`//grid 5 5 6` for 25 blocks with 6-wide streets. The first copy goes where `//paste` would put it. With `-s` the
+selection is repeated instead (like `//stack`, air included unless `-a`); the selection itself is the first copy and
+is left as it is. `-r` turns each copy a random multiple of 90 degrees for variety and prints the seed; `-d <seed>`
+repeats a layout (and implies `-r`). With `-r`, copies that are not square get square cells as wide as their longest
+side, and each copy is centred in its cell. `-g` drops (or lifts) each copy so its lowest solid layer sits on the
+ground under it, like `//stackpath -g`. `-y <rise>` raises each row by that many blocks, for terraces up a hill
+(-64 to 64). At most 10,000 copies and 50 million blocks in total. One `//undo` removes the whole grid.
+
 ## New commands
 
 | Command | What it does |
@@ -588,5 +619,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.clipboard.grid` (`//grid`; `//paste -c` uses `worldedit.clipboard.paste`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
