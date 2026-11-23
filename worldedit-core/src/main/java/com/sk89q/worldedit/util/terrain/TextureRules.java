@@ -252,6 +252,14 @@ public final class TextureRules<T> {
         };
         String op = matcher.group(2);
         double threshold = Double.parseDouble(matcher.group(3));
+        if (variable == Variable.NOISE && (threshold < 0 || threshold > 1)) {
+            throw new InputParseException(TextComponent.of("Noise goes from 0 to 1, so '" + input.trim()
+                + "' in rule '" + rule + "' can never match. Use a number from 0 to 1, e.g. noise>0.6"));
+        }
+        if (variable == Variable.SLOPE && (threshold < 0 || threshold > 90)) {
+            throw new InputParseException(TextComponent.of("Slope is in degrees from 0 (flat) to 90 (a cliff), so '"
+                + input.trim() + "' in rule '" + rule + "' can never match. E.g. slope>45"));
+        }
         return new Condition(variable, op.charAt(0) == '>', op.length() == 2, threshold);
     }
 }

@@ -43,6 +43,9 @@ import com.sk89q.worldedit.function.RegionMaskingFilter;
 import com.sk89q.worldedit.function.block.ApplySideEffect;
 import com.sk89q.worldedit.function.block.BlockReplace;
 import com.sk89q.worldedit.function.generator.FloraGenerator;
+import com.sk89q.worldedit.function.generator.architecture.InsetFaces;
+import com.sk89q.worldedit.function.generator.architecture.Roof;
+import com.sk89q.worldedit.function.generator.shape.ShapeFlags;
 import com.sk89q.worldedit.function.mask.ExistingBlockMask;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.mask.MaskIntersection;
@@ -173,8 +176,10 @@ public class RegionCommands {
     @Command(
         name = "/catenary",
         aliases = { "/cat" },
-        desc = "Draws a hanging catenary curve (rope/chain) between selection points",
-        descFooter = "Can only be used with a cuboid selection or a convex polyhedral selection"
+        desc = "Hangs a rope or chain between pos1 and pos2 that sags in the middle",
+        descFooter = "Works with a cuboid selection (pos1 to pos2) or a convex selection (through its points "
+            + "in order). Sag is how many blocks the middle droops (0 = pick a natural sag); thickness makes "
+            + "the rope fatter (0 = one block); -h makes a hollow tube. Example: //catenary chain 4"
     )
     @CommandPermissions("worldedit.region.catenary")
     @Logging(REGION)
@@ -182,18 +187,18 @@ public class RegionCommands {
                         @Selection Region region,
                         @Arg(desc = "The pattern of blocks to place")
                             Pattern pattern,
-                        @Arg(desc = "The sag (droop depth) in blocks (0 for auto)", def = "0")
+                        @Arg(desc = "How many blocks the middle droops (0 = pick a natural sag)", def = "0")
                             double sag,
-                        @Arg(desc = "The thickness of the curve", def = "0")
+                        @Arg(desc = "How fat the rope is (0 = one block)", def = "0")
                             double thickness,
-                        @Switch(name = 'h', desc = "Generate only a shell")
+                        @Switch(name = 'h', desc = "Make a hollow tube")
                             boolean shell) throws WorldEditException {
         if (!((region instanceof CuboidRegion) || (region instanceof ConvexPolyhedralRegion))) {
             actor.printError(TranslatableComponent.of("worldedit.line.invalid-type"));
             return 0;
         }
-        checkCommandArgument(thickness >= 0, "Thickness must be >= 0");
-        checkCommandArgument(sag >= 0, "Sag must be >= 0");
+        checkCommandArgument(thickness >= 0 && thickness <= 32, "Thickness must be between 0 and 32");
+        checkCommandArgument(sag >= 0 && sag <= 256, "Sag must be between 0 and 256 blocks");
         WorldEdit.getInstance().checkMaxRadius(thickness);
 
         List<BlockVector3> vectors;
@@ -207,7 +212,7 @@ public class RegionCommands {
 
         int blocksChanged = editSession.drawCatenary(pattern, vectors, sag, thickness, !shell);
 
-        actor.printInfo(TranslatableComponent.of("worldedit.line.changed", TextComponent.of(blocksChanged)));
+        actor.printInfo(TextComponent.of("Built a catenary: " + blocksChanged + " blocks changed."));
         return blocksChanged;
     }
 
@@ -375,24 +380,34 @@ public class RegionCommands {
     @Command(
         name = "/strata",
         aliases = { "/layers" },
-        desc = "Generates geological sedimentary rock strata through the selection",
-        descFooter = "Layers the selection with palettes tilted at a dip angle and azimuth direction"
+        desc = "Fills the selection with tilted rock layers, like a cliff face",
+        descFooter = "List the layer blocks separated by commas; they repeat in that order. Then how thick each "
+            + "layer is, how steeply the layers tilt (degrees: 0 = flat, 90 = standing upright), which way they "
+            + "tilt (degrees clockwise from north: 0 = north, 90 = east) and how wavy the layers are (0 = "
+            + "straight, up to 5). Every block in the selection is replaced, air included, so select solid rock. "
+            + "Example: //strata stone,andesite,granite,tuff 3 20 90 1"
     )
     @CommandPermissions("worldedit.region.strata")
     @Logging(REGION)
     public int strata(Actor actor, World world, EditSession editSession, LocalSession session,
                       @Selection Region region,
-                      @Arg(desc = "Comma-separated list of patterns for each layer")
+                      @Arg(desc = "The layer blocks, separated by commas, e.g. stone,andesite,granite")
                           String patternListStr,
-                      @Arg(desc = "Thickness of each layer in blocks", def = "4")
+                      @Arg(desc = "How thick each layer is, in blocks", def = "4")
                           double layerThickness,
-                      @Arg(desc = "Dip angle in degrees (tilt from horizontal, 0-90)", def = "15")
+                      @Arg(desc = "How steeply the layers tilt, in degrees (0 = flat, 90 = upright)", def = "15")
                           double dipDegrees,
-                      @Arg(desc = "Azimuth angle in degrees (0 = North, 90 = East)", def = "45")
+                      @Arg(desc = "Which way they tilt, in degrees clockwise from north (90 = east)", def = "45")
                           double azimuthDegrees,
-                      @Arg(desc = "Waviness factor for layer boundaries", def = "0.0")
+                      @Arg(desc = "How wavy the layers are (0 = straight, up to 5)", def = "0")
                           double noiseFactor) throws WorldEditException {
-        checkCommandArgument(layerThickness > 0, "Layer thickness must be > 0");
+        checkCommandArgument(layerThickness > 0 && layerThickness <= 256,
+            "Layer thickness must be more than 0 and at most 256 blocks");
+        checkCommandArgument(dipDegrees >= 0 && dipDegrees <= 90,
+            "The tilt must be between 0 (flat) and 90 (upright) degrees");
+        checkCommandArgument(Double.isFinite(azimuthDegrees),
+            "The tilt direction must be a number of degrees clockwise from north, e.g. 90 for east");
+        checkCommandArgument(noiseFactor >= 0 && noiseFactor <= 5, "Waviness must be between 0 (straight) and 5");
 
         Iterable<String> rawPatterns = StringUtil.splitOutsideBrackets(patternListStr, CharMatcher.is(','));
         List<Pattern> patterns = new ArrayList<>();
@@ -427,23 +442,27 @@ public class RegionCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of(affected + " blocks changed."));
+        actor.printInfo(TextComponent.of("Filled the selection with " + patterns.size() + " repeating rock layers: "
+            + affected + " blocks changed."));
         return affected;
     }
 
     @Command(
         name = "/erode",
-        desc = "Simulates thermal terrain erosion (talus/rockfall) over the selection",
-        descFooter = "Blocks on top of steep (2+ block) drops slide down onto the lowest neighboring column"
+        desc = "Wears down steep slopes in the selection, as if loose rock had tumbled down",
+        descFooter = "In each pass, the top block of every column that stands 2 or more blocks above a "
+            + "neighbour slides down onto the lowest neighbouring column, so cliffs turn into rough slopes. "
+            + "More passes give gentler slopes; it stops early when nothing more can slide. Example: //erode 5"
     )
     @CommandPermissions("worldedit.region.erode")
     @Logging(REGION)
     public int erode(Actor actor, EditSession editSession,
                      @Selection Region region,
-                     @Arg(desc = "Number of iterations to perform (1-50)", def = "1")
+                     @Arg(desc = "How many passes to make (1-50); more passes give gentler slopes", def = "1")
                          int iterations) throws WorldEditException {
-        checkCommandArgument(iterations > 0 && iterations <= 50, "Iterations must be between 1 and 50");
+        checkCommandArgument(iterations > 0 && iterations <= 50, "Passes must be between 1 and 50");
         int totalChanges = 0;
+        int passes = 0;
 
         BlockVector3 min = region.getMinimumPoint();
         BlockVector3 max = region.getMaximumPoint();
@@ -528,6 +547,7 @@ public class RegionCommands {
             if (toRemove.isEmpty()) {
                 break;
             }
+            passes++;
             for (BlockVector3 rem : toRemove) {
                 if (editSession.setBlock(rem, BlockTypes.AIR.getDefaultState())) {
                     totalChanges++;
@@ -540,25 +560,38 @@ public class RegionCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of(totalChanges + " blocks changed."));
+        if (passes == 0) {
+            actor.printInfo(TextComponent.of("Nothing to erode: no column in the selection stands 2 or more blocks "
+                + "above a neighbour."));
+        } else {
+            actor.printInfo(TextComponent.of("Eroded the selection in " + passes + (passes == 1 ? " pass" : " passes")
+                + (passes < iterations ? " (then nothing more could slide)" : "") + ": " + totalChanges
+                + " blocks changed."));
+        }
         return totalChanges;
     }
 
     @Command(
         name = "/weather",
-        desc = "Simulates aging, weathering, and patina on blocks in the selection"
+        desc = "Ages the blocks in the selection: cracks bricks, and with -m adds moss, with -c ages copper",
+        descFooter = "Cracks stone bricks, deepslate bricks and tiles, and polished blackstone bricks. -m also "
+            + "makes cobblestone and stone bricks (and their stairs, slabs and walls) mossy. -c moves copper "
+            + "blocks one step along exposed, weathered and oxidized (waxed copper is left alone). Other blocks "
+            + "are not changed. Severity is how many of the blocks change, from 0 to 1. "
+            + "Example: //weather 0.6 -m"
     )
     @CommandPermissions("worldedit.region.weather")
     @Logging(REGION)
     public int weather(Actor actor, EditSession editSession,
                        @Selection Region region,
-                       @Arg(desc = "Severity of weathering (0.0 to 1.0)", def = "0.5")
+                       @Arg(desc = "How many of the blocks change, from 0 (none) to 1 (as many as possible)",
+                           def = "0.5")
                            double severity,
-                       @Switch(name = 'm', desc = "Add moss to surfaces/materials")
+                       @Switch(name = 'm', desc = "Also make cobblestone and stone bricks mossy")
                            boolean moss,
-                       @Switch(name = 'c', desc = "Advance copper oxidation")
+                       @Switch(name = 'c', desc = "Also age copper by one step")
                            boolean copper) throws WorldEditException {
-        checkCommandArgument(severity >= 0.0 && severity <= 1.0, "Severity must be between 0.0 and 1.0");
+        checkCommandArgument(severity >= 0.0 && severity <= 1.0, "Severity must be between 0 and 1");
         int changed = 0;
 
         for (BlockVector3 pt : region) {
@@ -625,7 +658,13 @@ public class RegionCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of(changed + " blocks weathered."));
+        if (changed == 0) {
+            actor.printInfo(TextComponent.of("Nothing was weathered. //weather cracks stone, deepslate and blackstone "
+                + "bricks and deepslate tiles; add -m for mossy cobblestone and stone bricks, -c to age copper"
+                + (severity == 0 ? ", and use a severity above 0." : ".")));
+        } else {
+            actor.printInfo(TextComponent.of("Weathered the selection: " + changed + " blocks changed."));
+        }
         return changed;
     }
 
@@ -659,18 +698,28 @@ public class RegionCommands {
     @Command(
         name = "/autostairs",
         aliases = { "/autostair" },
-        desc = "Automatically detects step slopes and places oriented stairs and slabs"
+        desc = "Turns the step edges in the selection into stairs that face the right way",
+        descFooter = "Every block with air above it and a higher neighbour (or a drop next to it) becomes a stair "
+            + "facing up the slope, with corners where two slopes meet. Give a slab block too to put slabs on "
+            + "single gentle steps. -u does the same for ceilings (upside-down stairs). "
+            + "Example: //autostairs stone_brick_stairs stone_brick_slab"
     )
     @CommandPermissions("worldedit.region.autostairs")
     @Logging(REGION)
     public int autoStairs(Actor actor, EditSession editSession,
                           @Selection Region region,
-                          @Arg(desc = "The stair pattern/material to place")
+                          @Arg(desc = "The stair block, e.g. oak_stairs")
                               Pattern stairPattern,
-                          @Arg(desc = "Optional slab pattern for gentle steps", def = "")
+                          @Arg(desc = "A slab block for single gentle steps, e.g. oak_slab", def = "")
                               Pattern slabPattern,
-                          @Switch(name = 'u', desc = "Detect upside-down / ceiling stairs")
+                          @Switch(name = 'u', desc = "Work on ceilings, with upside-down stairs")
                               boolean upsideDown) throws WorldEditException {
+        BlockType stairType = stairPattern.applyBlock(region.getMinimumPoint()).getBlockType();
+        if (stairType.getProperty("facing") == null) {
+            actor.printError(TextComponent.of(stairType.id() + " is not a stair block, so it cannot face up the "
+                + "slope. Use a stair block, e.g. //autostairs stone_brick_stairs"));
+            return 0;
+        }
         int vDir = upsideDown ? -1 : 1;
         int changed = 0;
 
@@ -813,7 +862,9 @@ public class RegionCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of(changed + " stair blocks placed and oriented."));
+        actor.printInfo(TextComponent.of(changed == 0
+            ? "No step edges found in the selection: select the slope including the air above it."
+            : "Placed " + changed + " stairs and slabs along the step edges."));
         return changed;
     }
 
@@ -832,24 +883,39 @@ public class RegionCommands {
 
     @Command(
         name = "/roof",
-        desc = "Generates a parametric roof (gable, hip, shed, curved, or mansard) over the selected region"
+        desc = "Builds a roof (gable, hip, shed, curved or mansard) over the selection",
+        descFooter = "Type the roof type and the pattern in either order (the type defaults to gable), then "
+            + "optionally the overhang (blocks the roof reaches past the selection) and the pitch (how steep it "
+            + "is: 1 = 45 degrees, 0.5 = gentle, 2 = steep). On a flat selection (1-2 blocks high) the roof "
+            + "sits on top and rises with the pitch; on a taller selection it fills the selection's height, "
+            + "and the pitch scales that height. -h builds only the roof surface. "
+            + "Example: //roof hip spruce_planks 1 0.5"
     )
     @CommandPermissions("worldedit.region.roof")
     @Logging(REGION)
-    public int roof(Actor actor, EditSession editSession,
+    public int roof(Actor actor, World world, LocalSession session, EditSession editSession,
                     @Selection Region region,
-                    @Arg(desc = "Roof type: gable, hip, shed, curved, or mansard", def = "gable")
-                        String type,
-                    @Arg(desc = "The pattern of blocks to generate the roof with")
-                        Pattern pattern,
-                    @Arg(desc = "Overhang distance in blocks", def = "0")
-                        int overhang,
-                    @Arg(desc = "Pitch / height multiplier", def = "1.0")
-                        double pitch,
-                    @Switch(name = 'h', desc = "Generate hollow roof shell only")
+                    @Arg(desc = "The roof type (gable, hip, shed, curved, mansard) and the pattern, then "
+                        + "the overhang and pitch", variable = true)
+                        List<String> words,
+                    @Switch(name = 'h', desc = "Build only the roof surface (hollow)")
                         boolean hollow) throws WorldEditException {
-        checkCommandArgument(overhang >= 0, "Overhang must be >= 0");
-        checkCommandArgument(pitch > 0, "Pitch must be > 0");
+        Roof.Request request;
+        try {
+            ShapeFlags flags = ShapeFlags.parse(words, "h", "");
+            hollow |= flags.has('h');
+            request = Roof.parse(flags.remaining());
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return 0;
+        }
+        ParserContext context = new ParserContext();
+        context.setActor(actor);
+        context.setWorld(world);
+        context.setExtent(editSession);
+        context.setSession(session);
+        Pattern pattern = WorldEdit.getInstance().getPatternFactory().parseFromInput(request.pattern(), context);
+        int overhang = request.overhang();
 
         BlockVector3 min = region.getMinimumPoint();
         BlockVector3 max = region.getMaximumPoint();
@@ -857,123 +923,82 @@ public class RegionCommands {
         int maxX = max.x() + overhang;
         int minZ = min.z() - overhang;
         int maxZ = max.z() + overhang;
-
-        int regionHeight = max.y() - min.y();
-        int baseY = (regionHeight > 1) ? min.y() : max.y();
-        double spanX = Math.max(1.0, (maxX - minX));
-        double spanZ = Math.max(1.0, (maxZ - minZ));
-        double halfSpan = Math.max(1.0, Math.min(spanX, spanZ) / 2.0);
-        double targetHeight = (regionHeight > 1) ? regionHeight : (halfSpan * pitch);
-
-        String roofType = type.toLowerCase(java.util.Locale.ROOT);
-        int changed = 0;
-
         int sizeX = maxX - minX + 1;
         int sizeZ = maxZ - minZ + 1;
-        int[][] heights = new int[sizeX][sizeZ];
+        int selectionHeight = max.y() - min.y() + 1;
+        int baseY = Roof.fillsSelectionHeight(selectionHeight) ? min.y() : max.y();
+        double rise = Roof.rise(sizeX, sizeZ, selectionHeight, request.pitch());
+        checkCommandArgument(rise <= Roof.MAX_HEIGHT, "That roof would be " + (int) Math.round(rise)
+            + " blocks high; the most is " + Roof.MAX_HEIGHT + ". Use a smaller pitch.");
+        WorldEdit.getInstance().checkMaxRadius(Math.max(Math.max(sizeX, sizeZ) / 2.0, rise));
 
+        int[][] heights = Roof.heights(request.type(), sizeX, sizeZ, rise);
+        int changed = 0;
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                double t;
-                switch (roofType) {
-                    case "hip" -> {
-                        double distX = Math.min(x - minX, maxX - x);
-                        double distZ = Math.min(z - minZ, maxZ - z);
-                        t = Math.min(1.0, Math.min(distX, distZ) / halfSpan);
-                    }
-                    case "shed" -> {
-                        t = (spanX > 0) ? (x - minX) / spanX : 0.0;
-                    }
-                    case "curved" -> {
-                        double distX = Math.min(x - minX, maxX - x);
-                        t = Math.min(1.0, distX / (spanX / 2.0));
-                        t = Math.pow(t, 0.65);
-                    }
-                    case "mansard" -> {
-                        double distX = Math.min(x - minX, maxX - x);
-                        double distZ = Math.min(z - minZ, maxZ - z);
-                        double rawDist = Math.min(1.0, Math.min(distX, distZ) / halfSpan);
-                        t = (rawDist < 0.4) ? (rawDist / 0.4) * 0.7 : 0.7 + ((rawDist - 0.4) / 0.6) * 0.3;
-                    }
-                    case "gable" -> {
-                        if (spanX <= spanZ) {
-                            double distX = Math.min(x - minX, maxX - x);
-                            t = Math.min(1.0, distX / (spanX / 2.0));
-                        } else {
-                            double distZ = Math.min(z - minZ, maxZ - z);
-                            t = Math.min(1.0, distZ / (spanZ / 2.0));
-                        }
-                    }
-                    default -> {
-                        if (spanX <= spanZ) {
-                            double distX = Math.min(x - minX, maxX - x);
-                            t = Math.min(1.0, distX / (spanX / 2.0));
-                        } else {
-                            double distZ = Math.min(z - minZ, maxZ - z);
-                            t = Math.min(1.0, distZ / (spanZ / 2.0));
-                        }
-                    }
-                }
-                heights[x - minX][z - minZ] = baseY + (int) Math.round(t * targetHeight);
-            }
-        }
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                int topY = heights[x - minX][z - minZ];
-                int startY;
+                int topY = baseY + heights[x - minX][z - minZ];
+                int startY = baseY;
                 if (hollow) {
                     int minNeighbor = topY;
                     if (x > minX) {
-                        minNeighbor = Math.min(minNeighbor, heights[x - minX - 1][z - minZ]);
+                        minNeighbor = Math.min(minNeighbor, baseY + heights[x - minX - 1][z - minZ]);
                     }
                     if (x < maxX) {
-                        minNeighbor = Math.min(minNeighbor, heights[x - minX + 1][z - minZ]);
+                        minNeighbor = Math.min(minNeighbor, baseY + heights[x - minX + 1][z - minZ]);
                     }
                     if (z > minZ) {
-                        minNeighbor = Math.min(minNeighbor, heights[x - minX][z - minZ - 1]);
+                        minNeighbor = Math.min(minNeighbor, baseY + heights[x - minX][z - minZ - 1]);
                     }
                     if (z < maxZ) {
-                        minNeighbor = Math.min(minNeighbor, heights[x - minX][z - minZ + 1]);
+                        minNeighbor = Math.min(minNeighbor, baseY + heights[x - minX][z - minZ + 1]);
                     }
                     startY = Math.max(baseY, minNeighbor);
-                } else {
-                    startY = baseY;
                 }
-
                 for (int y = startY; y <= topY; y++) {
-                    BlockVector3 pt = BlockVector3.at(x, y, z);
-                    if (editSession.setBlock(pt, pattern)) {
+                    if (editSession.setBlock(BlockVector3.at(x, y, z), pattern)) {
                         changed++;
                     }
                 }
             }
         }
 
-        actor.printInfo(TextComponent.of(changed + " blocks placed for " + roofType + " roof."));
+        actor.printInfo(TextComponent.of("Built a " + request.type().id() + " roof over " + sizeX + " x " + sizeZ
+            + " blocks, " + ((int) Math.round(rise) + 1) + " high: " + changed + " blocks changed."));
         return changed;
     }
 
     @Command(
         name = "/insetfaces",
         aliases = { "/insetface", "/panelinset" },
-        desc = "Insets the outer surface faces of the selection by a given border margin, creating panels or recesses"
+        desc = "Sets recessed panels into the six faces of the selection, leaving a border around each",
+        descFooter = "The margin is the width of the border left around each panel; the depth is how far the panel "
+            + "is set back into the wall (0 = flush, the panel is just replaced). Example: //insetfaces 1 "
+            + "polished_andesite 1 on a selected wall gives it a recessed panel with a one-block frame."
     )
     @CommandPermissions("worldedit.region.insetfaces")
     @Logging(REGION)
     public int insetFaces(Actor actor, EditSession editSession,
                           @Selection Region region,
-                          @Arg(desc = "Border margin to inset from face boundaries (in blocks)", def = "1")
+                          @Arg(desc = "The width of the border around each panel, in blocks", def = "1")
                               int margin,
-                          @Arg(desc = "The pattern to set in the inset panel")
+                          @Arg(desc = "The panel block")
                               Pattern pattern,
-                          @Arg(desc = "Depth of recess into the wall (positive = recessed, 0 = surface panel)", def = "1")
+                          @Arg(desc = "How far the panel is set back into the wall (0 = flush)", def = "1")
                               int depth) throws WorldEditException {
-        checkCommandArgument(margin >= 0, "Margin must be >= 0");
-        checkCommandArgument(depth >= 0, "Depth must be >= 0");
+        checkCommandArgument(margin >= 0, "The margin must be 0 or more");
+        checkCommandArgument(depth >= 0 && depth <= 64, "The depth must be between 0 and 64");
 
         BlockVector3 min = region.getMinimumPoint();
         BlockVector3 max = region.getMaximumPoint();
+        BlockVector3 size = max.subtract(min).add(1, 1, 1);
+        int maxMargin = InsetFaces.maxMargin(size.x(), size.y(), size.z());
+        if (margin > maxMargin) {
+            actor.printError(TextComponent.of("A margin of " + margin + " leaves no room for a panel on this "
+                + size.x() + " x " + size.y() + " x " + size.z() + " selection; use a margin of at most "
+                + maxMargin + "."));
+            return 0;
+        }
+        int faces = InsetFaces.faceCount(size.x(), size.y(), size.z(), margin);
         int changed = 0;
 
         // North face (z = min.z())
@@ -1024,7 +1049,8 @@ public class RegionCommands {
                 max.y(), BlockVector3.at(0, -1, 0), depth, 2);
         }
 
-        actor.printInfo(TextComponent.of(changed + " blocks updated with inset detailing."));
+        actor.printInfo(TextComponent.of("Set panels into " + faces + (faces == 1 ? " face" : " faces")
+            + " of the selection: " + changed + " blocks changed."));
         return changed;
     }
 

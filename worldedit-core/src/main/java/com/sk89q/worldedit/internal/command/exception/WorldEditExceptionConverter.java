@@ -152,6 +152,9 @@ public class WorldEditExceptionConverter extends ExceptionConverterHelper {
 
     @ExceptionMatch
     public void convert(EmptyClipboardException e) throws CommandException {
+        if (e.getRichMessage() != null) {
+            throw newCommandException(e.getRichMessage(), e);
+        }
         throw newCommandException(TranslatableComponent.of("worldedit.error.empty-clipboard"), e);
     }
 

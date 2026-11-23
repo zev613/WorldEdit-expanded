@@ -29,6 +29,7 @@ import com.sk89q.worldedit.command.util.CrosshairPlacement;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
+import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
 import com.sk89q.worldedit.function.pattern.Pattern;
 import com.sk89q.worldedit.internal.annotation.Radii;
 import com.sk89q.worldedit.internal.annotation.Selection;
@@ -252,21 +253,25 @@ public class GenerationCommands {
     @Command(
         name = "/helix",
         aliases = { "/spiral" },
-        desc = "Generates a 3D helix or spiral."
+        desc = "Builds a spiral going up from your position, like a spring or a spiral stair rail",
+        descFooter = "The radius is how far the spiral is from the middle (two numbers such as 5,8 make it oval), "
+            + "the height is how many blocks it climbs, turns is how many times it goes round (0.25 to 200) and "
+            + "thickness makes the strand fatter (0 = one block). //hhelix makes a hollow strand. "
+            + "Example: //helix oak_planks 6 20 3. For more options (several strands) see //shape helix."
     )
     @CommandPermissions("worldedit.generation.helix")
     @Logging(PLACEMENT)
     public int helix(Actor actor, LocalSession session, EditSession editSession,
                      @Arg(desc = "The pattern of blocks to generate")
                          Pattern pattern,
-                     @Arg(desc = "The radii of the helix. 1st is N/S, 2nd is E/W")
+                     @Arg(desc = "How far the spiral is from the middle; two numbers (N/S,E/W) make it oval")
                      @Radii(2)
                          List<Double> radii,
-                     @Arg(desc = "The height of the helix")
+                     @Arg(desc = "How many blocks the spiral climbs")
                          int height,
-                     @Arg(desc = "The number of turns/revolutions", def = "1")
+                     @Arg(desc = "How many times it goes round (0.25-200)", def = "1")
                          double turns,
-                     @Arg(desc = "Thickness of the helix strand", def = "0")
+                     @Arg(desc = "How fat the strand is (0 = one block)", def = "0")
                          double thickness,
                      @Switch(name = 'h', desc = "Generate only a shell")
                          boolean shell,
@@ -275,45 +280,53 @@ public class GenerationCommands {
         double radiusX;
         double radiusZ;
         switch (radii.size()) {
-            case 1 -> radiusX = radiusZ = Math.max(1, radii.get(0));
+            case 1 -> radiusX = radiusZ = radii.get(0);
             case 2 -> {
-                radiusX = Math.max(1, radii.get(0));
-                radiusZ = Math.max(1, radii.get(1));
+                radiusX = radii.get(0);
+                radiusZ = radii.get(1);
             }
             default -> {
-                actor.printError(TextComponent.of("Invalid number of radii for helix"));
+                actor.printError(TextComponent.of("Give one radius, or two (north/south,east/west) for an oval spiral"));
                 return 0;
             }
         }
+        checkCommandArgument(radiusX >= 1 && radiusZ >= 1, "The radius must be at least 1, e.g. //helix stone 5 20");
+        checkCommandArgument(height >= 1 && height <= 1024,
+            "The height must be between 1 and 1024 blocks (the spiral always climbs upwards)");
+        checkCommandArgument(turns >= 0.25 && turns <= 200, "Turns must be between 0.25 and 200");
+        checkCommandArgument(thickness >= 0 && thickness <= 32, "Thickness must be between 0 and 32");
 
         worldEdit.checkMaxRadius(radiusX);
         worldEdit.checkMaxRadius(radiusZ);
+        worldEdit.checkMaxRadius(height / 2.0);
         worldEdit.checkMaxRadius(thickness);
 
         BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeHelix(pos, pattern, radiusX, radiusZ, height, turns, thickness, !shell);
-        actor.printInfo(TextComponent.of(affected + " blocks changed."));
+        actor.printInfo(TextComponent.of("Built a " + (shell ? "hollow " : "") + "helix " + height + " blocks high with "
+            + ShapeParameter.format(turns) + (turns == 1 ? " turn: " : " turns: ") + affected + " blocks changed."));
         return affected;
     }
 
     @Command(
         name = "/hhelix",
         aliases = { "/hspiral" },
-        desc = "Generates a hollow 3D helix or spiral."
+        desc = "Builds a spiral with a hollow strand going up from your position",
+        descFooter = "Same as //helix, but the strand is a hollow tube. Example: //hhelix glass 6 20 3 2"
     )
     @CommandPermissions("worldedit.generation.helix")
     @Logging(PLACEMENT)
     public int hhelix(Actor actor, LocalSession session, EditSession editSession,
                       @Arg(desc = "The pattern of blocks to generate")
                           Pattern pattern,
-                      @Arg(desc = "The radii of the helix. 1st is N/S, 2nd is E/W")
+                      @Arg(desc = "How far the spiral is from the middle; two numbers (N/S,E/W) make it oval")
                       @Radii(2)
                           List<Double> radii,
-                      @Arg(desc = "The height of the helix")
+                      @Arg(desc = "How many blocks the spiral climbs")
                           int height,
-                      @Arg(desc = "The number of turns/revolutions", def = "1")
+                      @Arg(desc = "How many times it goes round (0.25-200)", def = "1")
                           double turns,
-                      @Arg(desc = "Thickness of the helix strand", def = "1")
+                      @Arg(desc = "How fat the strand is", def = "1")
                           double thickness,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
@@ -323,44 +336,52 @@ public class GenerationCommands {
     @Command(
         name = "/torus",
         aliases = { "/donut" },
-        desc = "Generates a 3D torus (donut shape)."
+        desc = "Builds a donut lying flat around your position",
+        descFooter = "The ring radius is from the middle to the centre of the tube; the tube radius is how fat "
+            + "the tube is and must be smaller than the ring radius. //htorus makes a hollow donut. "
+            + "Example: //torus stone 10 3. To tilt or stretch it, see //shape torus."
     )
     @CommandPermissions("worldedit.generation.torus")
     @Logging(PLACEMENT)
     public int torus(Actor actor, LocalSession session, EditSession editSession,
                      @Arg(desc = "The pattern of blocks to generate")
                          Pattern pattern,
-                     @Arg(desc = "The major radius (distance from center to tube center)")
+                     @Arg(desc = "The ring radius: from the middle to the centre of the tube")
                          double majorRadius,
-                     @Arg(desc = "The minor radius (tube thickness)")
+                     @Arg(desc = "The tube radius: how fat the tube is (smaller than the ring radius)")
                          double minorRadius,
                      @Switch(name = 'h', desc = "Generate only a shell")
                          boolean shell,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
-        checkCommandArgument(majorRadius > 0, "Major radius must be > 0");
-        checkCommandArgument(minorRadius > 0, "Minor radius must be > 0");
+        checkCommandArgument(majorRadius > 0, "The ring radius must be more than 0");
+        checkCommandArgument(minorRadius > 0, "The tube radius must be more than 0");
+        checkCommandArgument(minorRadius < majorRadius, "The tube radius (" + ShapeParameter.format(minorRadius)
+            + ") must be smaller than the ring radius (" + ShapeParameter.format(majorRadius)
+            + "), or the donut has no hole. E.g. //torus stone 10 3");
         worldEdit.checkMaxRadius(majorRadius + minorRadius);
 
         BlockVector3 pos = CrosshairPlacement.placement(session, actor, atCrosshair);
         int affected = editSession.makeTorus(pos, pattern, majorRadius, minorRadius, !shell);
-        actor.printInfo(TextComponent.of(affected + " blocks changed."));
+        actor.printInfo(TextComponent.of("Built a " + (shell ? "hollow " : "") + "torus: " + affected
+            + " blocks changed."));
         return affected;
     }
 
     @Command(
         name = "/htorus",
         aliases = { "/hdonut" },
-        desc = "Generates a hollow 3D torus (donut shell)."
+        desc = "Builds a hollow donut lying flat around your position",
+        descFooter = "Same as //torus, but only the outside shell. Example: //htorus glass 10 3"
     )
     @CommandPermissions("worldedit.generation.torus")
     @Logging(PLACEMENT)
     public int htorus(Actor actor, LocalSession session, EditSession editSession,
                       @Arg(desc = "The pattern of blocks to generate")
                           Pattern pattern,
-                      @Arg(desc = "The major radius (distance from center to tube center)")
+                      @Arg(desc = "The ring radius: from the middle to the centre of the tube")
                           double majorRadius,
-                      @Arg(desc = "The minor radius (tube thickness)")
+                      @Arg(desc = "The tube radius: how fat the tube is (smaller than the ring radius)")
                           double minorRadius,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {

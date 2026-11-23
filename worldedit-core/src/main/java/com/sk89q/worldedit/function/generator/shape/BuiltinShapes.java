@@ -121,6 +121,28 @@ public final class BuiltinShapes {
     // ------------------------------------------------------------------ solids
 
     private static void addSolids(ImmutableList.Builder<NamedShape> shapes) {
+        shapes.add(shape("sphere", List.of("ball"), SOLIDS,
+            "A ball (give three sizes such as 8,5,8 for an egg-like ellipsoid)",
+            List.of(), (_, _) -> (ShapeInstance.Implicit) (x, y, z) -> x * x + y * y + z * z <= 1));
+        shapes.add(shape("cube", List.of("box", "cuboid"), SOLIDS,
+            "A box (give three sizes such as 6,3,4 for any cuboid)",
+            List.of(), (_, _) -> (ShapeInstance.Implicit) (_, _, _) -> true));
+        shapes.add(shape("cylinder", List.of("cyl"), SOLIDS,
+            "An upright cylinder (give sizes such as 4,10,4 for a tall one; tilt it with -t)",
+            List.of(), (_, _) -> (ShapeInstance.Implicit) (x, _, z) -> x * x + z * z <= 1));
+        shapes.add(shape("cone", List.of(), SOLIDS,
+            "A cone standing on its round base, point up",
+            List.of(), (_, _) -> (ShapeInstance.Implicit) (x, y, z) -> {
+                double radius = (1 - y) / 2;
+                return x * x + z * z <= radius * radius;
+            }));
+        shapes.add(shape("pyramid", List.of(), SOLIDS,
+            "A pyramid with a square base, point up",
+            List.of(), (_, _) -> (ShapeInstance.Implicit) (x, y, z) -> {
+                double half = (1 - y) / 2;
+                return Math.abs(x) <= half && Math.abs(z) <= half;
+            }));
+
         shapes.add(shape("heart", List.of("love"), SOLIDS,
             "A 3D heart, facing north/south (turn it with -r, or use -f to face you)",
             List.of(), (_, _) -> (ShapeInstance.Implicit) (x, y, z) -> {

@@ -52,6 +52,11 @@ public final class CompoundShape {
      */
     public static final long MAX_VOLUME = 64L * 1024 * 1024;
 
+    /**
+     * The furthest a step may be moved from the first shape, in blocks along each axis.
+     */
+    public static final int MAX_OFFSET = 512;
+
     private static final Map<UUID, CompoundShape> BY_PLAYER = new ConcurrentHashMap<>();
 
     /**
@@ -113,14 +118,29 @@ public final class CompoundShape {
      *
      * @param step the step
      * @param position the placement position, remembered if this is the first step
-     * @throws IllegalArgumentException if the first step is not {@link Operation#ADD}
+     * @throws IllegalArgumentException if the first step is not {@link Operation#ADD}, the offset is too
+     *     far or the combined shape would get too big
      */
     public synchronized void add(Step step, BlockVector3 position) {
+        if (steps.isEmpty() && step.operation() != Operation.ADD) {
+            throw new IllegalArgumentException("Start with //combine add: there is nothing yet to "
+                + step.operation().label() + " from.");
+        }
+        BlockVector3 offset = step.offset();
+        if (Math.abs(offset.x()) > MAX_OFFSET || Math.abs(offset.y()) > MAX_OFFSET
+            || Math.abs(offset.z()) > MAX_OFFSET) {
+            throw new IllegalArgumentException("The offset " + offset.x() + "," + offset.y() + "," + offset.z()
+                + " is too far: each part can be at most " + MAX_OFFSET + " blocks from the first shape.");
+        }
+        List<Step> after = new ArrayList<>(steps);
+        after.add(step);
+        long[] size = boxSize(after, 0);
+        if (size[0] * size[1] * size[2] > MAX_VOLUME) {
+            throw new IllegalArgumentException("With this shape the combined shape would be " + size[0] + " x "
+                + size[1] + " x " + size[2] + " blocks, which is too big. Use a smaller shape or move it closer "
+                + "(-o).");
+        }
         if (steps.isEmpty()) {
-            if (step.operation() != Operation.ADD) {
-                throw new IllegalArgumentException("Start with //combine add: there is nothing yet to "
-                    + step.operation().label() + " from.");
-            }
             anchor = position;
         }
         steps.add(step);
@@ -203,7 +223,15 @@ public final class CompoundShape {
         if (steps.isEmpty()) {
             throw new IllegalArgumentException("There are no shapes yet: start with //combine add <shape> <size>.");
         }
-        int margin = smoothness > 0 ? (int) Math.ceil(smoothness) + 1 : 0;
+        int margin = margin(smoothness);
+        long[] size = boxSize(steps, margin);
+        long volume = size[0] * size[1] * size[2];
+        if (volume > (smoothness > 0 ? MAX_SMOOTH_VOLUME : MAX_VOLUME)) {
+            throw new IllegalArgumentException(smoothness > 0
+                ? "The combined shape is too big to blend (" + size[0] + " x " + size[1] + " x " + size[2]
+                    + " blocks with the blend margin); try //combine smooth 0 or smaller shapes."
+                : "The combined shape is too big (" + size[0] + " x " + size[1] + " x " + size[2] + " blocks).");
+        }
         int minX = Integer.MAX_VALUE;
         int minY = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
@@ -223,14 +251,9 @@ public final class CompoundShape {
             maxY = Math.max(maxY, grid.getMaxY() + offset.y() + margin + 1);
             maxZ = Math.max(maxZ, grid.getMaxZ() + offset.z() + margin + 1);
         }
-        long sizeX = (long) maxX - minX + 1;
-        long sizeY = (long) maxY - minY + 1;
-        long sizeZ = (long) maxZ - minZ + 1;
-        long volume = sizeX * sizeY * sizeZ;
-        if (volume > (smoothness > 0 ? MAX_SMOOTH_VOLUME : MAX_VOLUME)) {
-            throw new IllegalArgumentException("The combined shape is too big (" + sizeX + " x " + sizeY + " x "
-                + sizeZ + ")" + (smoothness > 0 ? "to smooth; try //combine smooth 0 or smaller shapes." : "."));
-        }
+        long sizeX = size[0];
+        long sizeY = size[1];
+        long sizeZ = size[2];
         VoxelGrid result = new VoxelGrid(minX, minY, minZ, maxX, maxY, maxZ);
         if (smoothness <= 0) {
             for (int y = minY; y <= maxY; y++) {
@@ -289,6 +312,43 @@ public final class CompoundShape {
             }
         }
         return result;
+    }
+
+    private static int margin(double smoothness) {
+        return smoothness > 0 ? (int) Math.ceil(smoothness) + 1 : 0;
+    }
+
+    /**
+     * The size of the box around the added shapes of some steps (cut and keep steps never make it bigger).
+     *
+     * @param steps the steps
+     * @param margin extra room on every side for blending
+     * @return x, y and z sizes
+     */
+    private static long[] boxSize(List<Step> steps, int margin) {
+        long minX = Long.MAX_VALUE;
+        long minY = Long.MAX_VALUE;
+        long minZ = Long.MAX_VALUE;
+        long maxX = Long.MIN_VALUE;
+        long maxY = Long.MIN_VALUE;
+        long maxZ = Long.MIN_VALUE;
+        for (Step step : steps) {
+            if (step.operation() != Operation.ADD) {
+                continue;
+            }
+            VoxelGrid grid = step.voxels();
+            BlockVector3 offset = step.offset();
+            minX = Math.min(minX, (long) grid.getMinX() + offset.x() - margin - 1);
+            minY = Math.min(minY, (long) grid.getMinY() + offset.y() - margin - 1);
+            minZ = Math.min(minZ, (long) grid.getMinZ() + offset.z() - margin - 1);
+            maxX = Math.max(maxX, (long) grid.getMaxX() + offset.x() + margin + 1);
+            maxY = Math.max(maxY, (long) grid.getMaxY() + offset.y() + margin + 1);
+            maxZ = Math.max(maxZ, (long) grid.getMaxZ() + offset.z() + margin + 1);
+        }
+        if (minX == Long.MAX_VALUE) {
+            return new long[] {0, 0, 0};
+        }
+        return new long[] {maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1};
     }
 
     private static boolean contains(Step step, int x, int y, int z) {

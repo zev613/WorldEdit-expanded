@@ -53,6 +53,7 @@ import com.sk89q.worldedit.regions.Polygonal2DRegion;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.session.NamedClipboardStore;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.block.BaseBlock;
@@ -83,6 +84,7 @@ import static com.sk89q.worldedit.internal.command.CommandUtil.checkCommandArgum
 public class LandscapeCommands {
 
     private static final int PATH_MARGIN = 24;
+    private static final int MAX_PATH_WIDTH = 64;
     private static final int PATH_MAX_AREA = 512 * 512;
     private static final int PATH_HEADROOM = 3;
     private static final int PATH_PILLAR_SPACING = 6;
@@ -107,7 +109,8 @@ public class LandscapeCommands {
         desc = "Builds a terrain-following road between the selection points",
         descFooter = "Cuboid selections go from pos1 to pos2; polygonal and convex selections pass through "
             + "their points in order. The route avoids steep slopes and water, is graded so that each "
-            + "step rises at most one block, tunnels through hills and is bridged with pillars over gaps."
+            + "step rises at most one block, tunnels through hills and is bridged with pillars over gaps. "
+            + "Width is 1 to 64 blocks (1 makes a narrow footpath). Example: //path gravel 3 -s cobblestone_stairs"
     )
     @CommandPermissions("worldedit.generation.path")
     @Logging(REGION)
@@ -115,13 +118,14 @@ public class LandscapeCommands {
                     @Selection Region region,
                     @Arg(desc = "The pattern of blocks to build the road with")
                         Pattern pattern,
-                    @Arg(desc = "The width of the road", def = "3")
+                    @Arg(desc = "The width of the road in blocks (1-64)", def = "3")
                         int width,
                     @Arg(desc = "The steepest rise per block that does not need grading", def = "1")
                         double maxSlope,
                     @ArgFlag(name = 's', desc = "Place stairs of this pattern on one-block height changes")
                         Pattern stairs) throws WorldEditException {
-        checkCommandArgument(width >= 1, "Width must be at least 1");
+        checkCommandArgument(width >= 1 && width <= MAX_PATH_WIDTH,
+            "Width must be between 1 and " + MAX_PATH_WIDTH + " blocks");
         checkCommandArgument(maxSlope > 0, "Maximum slope must be greater than 0");
         worldEdit.checkMaxRadius(width / 2.0);
 
@@ -354,7 +358,9 @@ public class LandscapeCommands {
         checkCommandArgument(count >= 1 && count <= 1000, "Count must be between 1 and 1000");
         checkCommandArgument(minSpacing >= 0, "Minimum spacing must not be negative");
 
-        ClipboardHolder holder = clipName.isEmpty() ? session.getClipboard() : session.getNamedClipboard(clipName);
+        ClipboardHolder holder = clipName == null || clipName.isEmpty()
+            ? session.getClipboard()
+            : NamedClipboardStore.getDefault().getNamedClipboard(session, actor, clipName);
         Clipboard clipboard = holder.getClipboard();
         Transform baseTransform = holder.getTransform();
         BlockVector3 clipMin = clipboard.getRegion().getMinimumPoint().subtract(clipboard.getOrigin());

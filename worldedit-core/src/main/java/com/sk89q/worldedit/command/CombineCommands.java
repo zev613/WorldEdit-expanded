@@ -91,8 +91,8 @@ public class CombineCommands {
         desc = "Add a shape to your compound shape",
         descFooter = "Same shapes, sizes and settings as //shape. -o x,y,z moves it that many blocks from the "
             + "middle of the first shape (x east, y up, z south). -r turns it, -t tilts it (degrees). "
-            + "The first shape is placed where you stand now. Example: //combine add sphere 6, then "
-            + "//combine add cylinder 3,8,3 -o 0,8,0"
+            + "The first shape is placed where you stand now. Offsets can be up to 512 blocks. Example: "
+            + "//combine add sphere 6, then //combine add cylinder 3,8,3 -o 0,8,0"
     )
     @CommandPermissions(PERMISSION)
     public void add(Actor actor, LocalSession session,

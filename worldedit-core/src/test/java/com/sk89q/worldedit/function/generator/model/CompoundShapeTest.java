@@ -113,6 +113,32 @@ class CompoundShapeTest {
     }
 
     @Test
+    void farOffsetsAreRefusedWhenAdded() {
+        CompoundShape shape = CompoundShape.of(UUID.randomUUID());
+        shape.add(step(Operation.ADD, box(5, 5, 5), 0, 0, 0), BlockVector3.ZERO);
+        IllegalArgumentException far = assertThrows(IllegalArgumentException.class,
+            () -> shape.add(step(Operation.ADD, box(5, 5, 5), 100000, 0, 0), BlockVector3.ZERO));
+        assertTrue(far.getMessage().contains("too far"), far.getMessage());
+        assertEquals(1, shape.getSteps().size());
+        // within the offset limit, but the box around both would be far too big
+        IllegalArgumentException big = assertThrows(IllegalArgumentException.class,
+            () -> shape.add(step(Operation.ADD, box(5, 5, 5), 500, 500, 500), BlockVector3.ZERO));
+        assertTrue(big.getMessage().contains("too big"), big.getMessage());
+        assertEquals(1, shape.getSteps().size());
+        shape.add(step(Operation.ADD, box(5, 5, 5), 512, 0, 0), BlockVector3.ZERO);
+        assertEquals(2, shape.getSteps().size());
+    }
+
+    @Test
+    void tooBigToBlendSaysSo() {
+        List<Step> steps = List.of(step(Operation.ADD, box(5, 5, 5), 0, 0, 0),
+            step(Operation.ADD, box(5, 5, 5), 500, 500, 100));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+            () -> CompoundShape.evaluate(steps, 4));
+        assertTrue(e.getMessage().startsWith("The combined shape is too big to blend ("), e.getMessage());
+    }
+
+    @Test
     void historyPerPlayer() {
         UUID player = UUID.randomUUID();
         CompoundShape shape = CompoundShape.of(player);

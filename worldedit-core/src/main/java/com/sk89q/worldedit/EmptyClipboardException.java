@@ -19,9 +19,26 @@
 
 package com.sk89q.worldedit;
 
+import com.sk89q.worldedit.util.formatting.text.Component;
+
 /**
  * Thrown when there is no clipboard set.
  */
 public class EmptyClipboardException extends WorldEditException {
 
+    /**
+     * Create a new exception for the (empty) active clipboard.
+     */
+    public EmptyClipboardException() {
+    }
+
+    /**
+     * Create a new exception with a specific message, e.g. for a missing
+     * named clipboard.
+     *
+     * @param message the message shown instead of the generic "empty clipboard" one
+     */
+    public EmptyClipboardException(Component message) {
+        super(message);
+    }
 }

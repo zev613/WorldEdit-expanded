@@ -123,6 +123,16 @@ class TextureRulesTest extends BaseWorldEditTest {
     }
 
     @Test
+    void thresholdsOutsideTheirRangeAreRejected() throws InputParseException {
+        assertThrows(InputParseException.class, () -> parse("stone@noise>2"));
+        assertThrows(InputParseException.class, () -> parse("stone@noise<-0.5"));
+        assertThrows(InputParseException.class, () -> parse("stone@slope>120"));
+        assertEquals(1, parse("stone@noise>=1").getRules().size());
+        assertEquals(1, parse("stone@noise<0").getRules().size());
+        assertEquals(1, parse("stone@slope<90").getRules().size());
+    }
+
+    @Test
     void patternParserErrorsPropagate() {
         assertThrows(InputParseException.class, () -> TextureRules.<String>parse("bogus@y>1", s -> {
             throw new InputParseException(TextComponent.of("bad " + s));

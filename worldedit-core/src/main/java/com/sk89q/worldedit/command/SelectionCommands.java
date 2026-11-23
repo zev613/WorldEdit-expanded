@@ -59,6 +59,7 @@ import com.sk89q.worldedit.regions.selector.RegionSelectorType;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.util.Countable;
 import com.sk89q.worldedit.util.Location;
+import com.sk89q.worldedit.util.buildtools.Measurement;
 import com.sk89q.worldedit.util.formatting.component.CommandListBox;
 import com.sk89q.worldedit.util.formatting.component.InvalidComponentException;
 import com.sk89q.worldedit.util.formatting.component.PaginationBox;
@@ -679,63 +680,50 @@ public class SelectionCommands {
     @Command(
         name = "/measure",
         aliases = { "/dist", "/distance" },
-        desc = "Measure distance, dimensions, angle, and volume of the selection or between points"
+        desc = "Measure distance, size, angle and volume of the selection, or from pos1 to a point",
+        descFooter = "Sizes count both end blocks, like //size: from x=0 to x=10 is 11 blocks wide. Distances "
+            + "are between block centres, so the same two blocks are 10 apart. Example: //measure 100,64,-20"
     )
     @CommandPermissions("worldedit.selection.size")
     public void measure(Actor actor, World world, LocalSession session,
-                        @Arg(desc = "Optional second point to measure from selection pos1", def = "")
+                        @Arg(desc = "A point to measure to from pos1 (leave out to measure the selection)", def = "")
                             BlockVector3 targetPos) throws WorldEditException {
         Region region = session.getSelection(world);
-        BlockVector3 pos1;
-        BlockVector3 pos2;
-
+        Measurement m;
+        String label;
         if (targetPos != null) {
-            pos1 = session.getRegionSelector(world).getPrimaryPosition();
-            pos2 = targetPos;
+            m = Measurement.between(session.getRegionSelector(world).getPrimaryPosition(), targetPos);
+            label = "From pos1";
+        } else if (region instanceof CuboidRegion cuboid) {
+            m = Measurement.between(cuboid.getPos1(), cuboid.getPos2());
+            label = "From pos1";
         } else {
-            pos1 = region.getMinimumPoint();
-            pos2 = region.getMaximumPoint();
+            m = Measurement.between(region.getMinimumPoint(), region.getMaximumPoint());
+            label = "Corners: from";
         }
-
-        int dx = Math.abs(pos2.x() - pos1.x()) + (targetPos == null ? 1 : 0);
-        int dy = Math.abs(pos2.y() - pos1.y()) + (targetPos == null ? 1 : 0);
-        int dz = Math.abs(pos2.z() - pos1.z()) + (targetPos == null ? 1 : 0);
-
-        double diffX = pos2.x() - pos1.x();
-        double diffY = pos2.y() - pos1.y();
-        double diffZ = pos2.z() - pos1.z();
-
-        double euclideanDist = Math.sqrt(diffX * diffX + diffY * diffY + diffZ * diffZ);
-        double horizontalDist = Math.hypot(diffX, diffZ);
-        int manhattanDist = (int) (Math.abs(diffX) + Math.abs(diffY) + Math.abs(diffZ));
-
-        double yaw = Math.toDegrees(Math.atan2(-diffX, diffZ));
-        double pitch = Math.toDegrees(Math.atan2(-diffY, horizontalDist));
-
-        long volume = (long) dx * dy * dz;
-        long surfaceArea = 2L * ((long) dx * dy + (long) dy * dz + (long) dx * dz);
 
         actor.printInfo(TextComponent.of("--- WorldEdit Measurement ---"));
         actor.printInfo(TextComponent.of(String.format(
-            "Points: (%d, %d, %d) to (%d, %d, %d)",
-            pos1.x(), pos1.y(), pos1.z(), pos2.x(), pos2.y(), pos2.z()
+            "%s (%d, %d, %d) to (%d, %d, %d)",
+            label, m.from().x(), m.from().y(), m.from().z(), m.to().x(), m.to().y(), m.to().z()
         )));
         actor.printInfo(TextComponent.of(String.format(
-            "Delta: dx=%d, dy=%d, dz=%d (Dimensions: %dx%dx%d)",
-            (int) diffX, (int) diffY, (int) diffZ, dx, dy, dz
+            "Size: %d x %d x %d blocks (difference: dx=%d, dy=%d, dz=%d)",
+            m.sizeX(), m.sizeY(), m.sizeZ(), m.dx(), m.dy(), m.dz()
         )));
         actor.printInfo(TextComponent.of(String.format(
-            "Distance: Euclidean=%.3f, Horizontal=%.3f, Manhattan=%d",
-            euclideanDist, horizontalDist, manhattanDist
+            "Distance: straight %.2f, flat %.2f, walking along the axes %d",
+            m.distance(), m.horizontalDistance(), m.walkingDistance()
         )));
         actor.printInfo(TextComponent.of(String.format(
-            "Angles: Yaw=%.1f°, Pitch=%.1f°",
-            yaw, pitch
+            "Angles: yaw %.1f°, pitch %.1f°",
+            m.yaw(), m.pitch()
         )));
-        actor.printInfo(TextComponent.of(String.format(
-            "Bounding: Volume=%d blocks, Surface Area=%d blocks²",
-            volume, surfaceArea
-        )));
+        String volume = String.format("Box: %d blocks, %d block faces on the outside", m.volume(), m.surfaceArea());
+        if (targetPos == null && !(region instanceof CuboidRegion)) {
+            volume += String.format(" (the selection itself has %d blocks)", region.getVolume());
+        }
+        actor.printInfo(TextComponent.of(volume));
     }
 
     @Command(
