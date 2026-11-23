@@ -75,7 +75,8 @@ public class HistoryBrowserCommands {
         name = "/history",
         aliases = { "/edits" },
         desc = "List your recent edits, and undo or redo back to any of them",
-        descFooter = """
+        descFooter =
+            """
             //history [page] lists your edits, newest first. Click [undo to here] to undo that edit and \
             everything after it, or [redo to here] on an undone edit. Also: //history undo|redo|info|tp <number>.
             """

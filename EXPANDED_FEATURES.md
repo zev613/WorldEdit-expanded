@@ -548,6 +548,42 @@ largest connected piece is kept. Types can be given by name.
 //coral tube_coral_block,horn_coral_block 6 tubes seed=3
 ```
 
+## Saved patterns and masks, and the history browser
+
+**Saved patterns.** Give any pattern a name once and use it as `#name` everywhere a pattern is accepted: `//set`,
+`//replace`, brushes, `//shape`, and inside other patterns.
+
+```
+//pattern save oldstone 50%stone_bricks,30%cracked_stone_bricks,20%mossy_stone_bricks
+//set #oldstone
+//shape heart #oldstone 10
+//set #stripes[#oldstone,glass,2]
+//pattern save wall #stripes[#oldstone,glass,2]
+```
+
+| Command | What it does |
+|---|---|
+| `//pattern save <name> <pattern>` | Saves (or replaces) a pattern. It is checked first; a pattern that doesn't work is refused with the reason. |
+| `//pattern delete <name>` | Deletes it (and warns if other saved patterns used it). |
+| `//pattern list` | Lists the saved patterns. Click one to put `//set #name` in your chat box, shift-click to insert `#name`. |
+| `//pattern info <name>` | Shows the pattern, whether it works right now and which saved patterns use it. |
+| `//mask save\|delete\|list\|info ...` | The same for masks, e.g. `//mask save ores coal_ore,iron_ore,copper_ore` then `//replace #ores stone`. Masks may contain spaces. |
+
+* Names use letters, digits, `_` and `-` (up to 32 characters, not case sensitive). Names of built-in `#` patterns
+  and masks (`#clipboard`, `#stripes`, `#gradient`, `#region`, ...) can't be used.
+* Saved patterns can use other saved patterns. A pattern that ends up using itself (`a` uses `b`, `b` uses `a`) gives an
+  error instead of hanging.
+* They are shared by everyone on the server and kept in `saved-patterns.txt` / `saved-masks.txt` in WorldEdit's folder.
+* `#name` is offered when tab-completing patterns and masks.
+
+**History browser.** `//history [page]` (alias `//edits`) lists your recent edits, newest first: what made each one
+(e.g. `//set stone`, `brush (sphere)`), how many blocks changed, how long ago, and whether it is undone. Click
+`[undo to here]` to undo that edit and every newer one, or `[redo to here]` on an undone edit to redo up to it.
+`[info]` shows where the edit is and how big it is, and players get `[tp]` to go to its middle. Without clicking:
+`//history undo 3`, `//history redo 2`, `//history info 1`, `//history tp 1` (1 = newest). Edits restored from disk
+after a restart are listed as "edit" with "? blocks" because only the blocks were saved; `[info]` still shows where
+they are.
+
 ## New commands
 
 | Command | What it does |
@@ -588,5 +624,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit` (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit` (`//mask save|delete`), `worldedit.history.list` (`//history`; undoing/redoing from it uses the normal undo/redo permissions), `worldedit.history.tp` (`[tp]` in `//history`). Using `#name` needs no permission. The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
