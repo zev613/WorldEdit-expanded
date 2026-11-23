@@ -322,6 +322,62 @@ pixels are skipped. It stands upright facing you with its bottom-left corner at 
 Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
 with commas. Example: `//image logo.png 64 -p wool,concrete`.
 
+## Smarter selections (magic wand, whole builds, walking a polygon)
+
+No more clicking dozens of `//sel poly` points round an irregular build.
+
+**`//selconnected <mask> [maxDistance] [-d] [-p]`** (aliases `//magicwand`, `//selc`) works like a paint program's
+magic wand. It starts from the block under your feet if that matches the mask, otherwise from the block you look at
+(up to 512 blocks away; the message says which was used). From the console it starts at `//pos1`. It then spreads
+through touching blocks that match the mask (any mask: `gravel`, `stone_bricks,stone_brick_stairs`, `#existing`...).
+Blocks are connected through their faces; `-d` also follows blocks that only touch at an edge or corner (zig-zag
+paths, diagonal stairs). The selection is **exactly those blocks**, so `//set`, `//replace`, `//copy`, `//count`,
+`//walls` and so on affect only them. It reports the block count and the size of the bounding box.
+
+```
+//selc gravel                       the gravel path you are standing on
+//selc stone_bricks,stone_brick_stairs -d     a wall with its stair trim
+//selc water 64                     the pond you look at, at most 64 blocks out
+```
+
+**`//selbuild [maxDistance] [-g] [-p]`** selects the whole build you are looking at (console: at `//pos1`), with all
+its decorations: it spreads through every non-air block touching another (also at edges and corners), but not into
+natural terrain. `-g` adds the one layer of ground touching the build (the blocks under and beside it), which is handy
+before `//copy` or `//move`. Natural terrain is a fixed list: grass block, dirt, coarse dirt, rooted dirt, podzol,
+mycelium, mud, stone, deepslate, andesite, diorite, granite, tuff, calcite, bedrock, gravel, sand, red sand, clay
+(and their suspicious variants), snow blocks and powder snow, water, lava, bubble columns, short/tall grass, ferns,
+dead bushes, dry grass, seagrass, kelp, flowers (including petals, wildflowers, eyeblossoms, leaf litter), every
+`*_ore`, netherrack, soul sand/soil, nylium, end stone and ancient debris. Deliberately **not** natural: leaves and
+logs (hedges, timber framing and garden trees would be cut off; a tree touching the build is therefore included),
+sandstone and cobblestone (common building blocks), snow layers (they lie on roofs and paths), ice, moss and basalt.
+A build that touches a cliff of one of those materials will spread into it: limit the distance or trim afterwards.
+
+**`-p`** (on both commands) turns the result into a normal `//sel poly` selection for tools that need one: the outline
+follows the outer edge of the blocks' footprint seen from above (concave where the footprint is, e.g. L- or U-shaped
+houses; courtyards are filled), from the lowest to the highest selected block. If the outline has more points than
+polygons may have on the server (`max-polygon-points`, 20 by default), it is simplified (Douglas-Peucker) so that it
+still goes around every block where possible; otherwise the message says how many edge columns were left outside.
+
+Both commands stop at `maxDistance` blocks from the start along any axis, and at a total number of blocks. Defaults and
+hard caps come from the config: `max-connected-selection-distance` (256) and `max-connected-selection-blocks`
+(2,000,000) (in `worldedit.yml` under `limits:`, or `worldedit.properties`). Blocks already visited are kept in a
+compact bit set (16x16x16 sections), so even large selections need little memory. Wand clicks or `//pos1` move the
+exact selection like a `//selshape`.
+
+**`//polywalk`** makes a `//sel poly` by walking around a build:
+
+| Command | What it does |
+|---|---|
+| `//polywalk` or `//polywalk start [spacing]` | Start recording. Every time you have walked `spacing` blocks (default 4) horizontally from the last point, a point is added where you stand, and your polygon selection grows as you go (WorldEdit CUI and `//size` show it). |
+| `//polywalk point [x,y,z]` | Add a point here now (for corners; these are never simplified away), or at the given position. |
+| `//polywalk undo` | Remove the last point. |
+| `//polywalk stop [-y min,max]` | Finish: drop points that are nearly on a straight line, close the loop, and select from 1 block below the lowest place you walked to the highest non-air block inside the outline (or the `-y` range). Prints the point count and size. |
+| `//polywalk cancel` | Throw the recording away. |
+
+Recording stops by itself (nothing is selected) when you log out or change world. Point sampling runs from the server
+tick (a general per-tick hook, `WorldEdit#getTickListeners()`, called next to the edit job queue); it is only registered
+while someone is walking. The command line has no walking player, so there only `//polywalk point x,y,z` adds points.
+
 ## New commands
 
 | Command | What it does |
@@ -363,5 +419,6 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
 `worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`. Smart selections: `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`),
+`worldedit.selection.polywalk` (`//polywalk`).
 In single-player, and for operators, everything is allowed.
