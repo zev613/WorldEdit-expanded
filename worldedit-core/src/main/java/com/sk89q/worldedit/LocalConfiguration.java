@@ -81,6 +81,8 @@ public abstract class LocalConfiguration {
     public int navigationWandMaxDistance = 50;
     /** How far /jumpto (and the navigation wand, up to its own limit) looks, in blocks. */
     public int jumptoMaxDistance = 2048;
+    /** Where //guidebook links to. */
+    public String guidebookUrl = "https://claude.ai/artifact/SpGBXYekZwZMpuTcnWvHXe";
     /** How far //selconnected and //selbuild spread from their start block, in blocks (default and hard cap). */
     public int maxConnectedSelectionDistance = 256;
     /** The most blocks //selconnected and //selbuild may select. */
