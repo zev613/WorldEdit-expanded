@@ -34,6 +34,7 @@ import com.sk89q.worldedit.function.generator.age.OvergrowGenerator;
 import com.sk89q.worldedit.function.generator.age.RuinGenerator;
 import com.sk89q.worldedit.internal.annotation.Selection;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.util.formatting.Counts;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
@@ -154,9 +155,10 @@ public class AgeCommands {
                 !(noFlowers || parsed.has('n')), !(noLichen || parsed.has('l'))));
         world.rethrow();
         actor.printInfo(TextComponent.of("Overgrown (amount " + parsed.amountText() + ", seed " + parsed.seed()
-            + "): " + result.vines() + " vines, " + result.bushes() + " leaves, " + result.moss() + " moss, "
-            + result.plants() + " plants, " + result.hanging() + " hanging, " + result.lichen() + " lichen; "
-            + result.changed() + " blocks changed."));
+            + "): " + Counts.of(result.vines(), "vine") + ", " + Counts.number(result.bushes()) + " leaves, "
+            + Counts.number(result.moss()) + " moss, " + Counts.of(result.plants(), "plant") + ", "
+            + Counts.number(result.hanging()) + " hanging, " + Counts.number(result.lichen()) + " lichen; "
+            + Counts.of(result.changed(), "block") + " changed."));
         return result.changed();
     }
 }

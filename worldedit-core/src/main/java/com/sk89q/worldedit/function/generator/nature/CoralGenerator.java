@@ -48,7 +48,7 @@ public final class CoralGenerator {
      * The settings, in the order plain numbers fill them.
      */
     public static final List<ShapeParameter> PARAMETERS = List.of(
-        new ShapeParameter("type", 0, 0, 3, NamedSettings.describe(TYPES)),
+        new ShapeParameter("type", 0, 0, 3, NamedSettings.describe(TYPES)).withChoices(TYPES),
         NatureMath.SEED
     );
 

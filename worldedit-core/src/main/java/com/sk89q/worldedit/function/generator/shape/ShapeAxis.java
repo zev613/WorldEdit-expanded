@@ -51,7 +51,8 @@ public final class ShapeAxis {
      * @return the parameter
      */
     public static ShapeParameter parameter(int defaultAxis, String description) {
-        return new ShapeParameter(NAME, defaultAxis, AUTO, Z, description);
+        return new ShapeParameter(NAME, defaultAxis, AUTO, Z, description)
+            .withChoices(List.of("auto", "x", "y", "z"));
     }
 
     /**
@@ -70,7 +71,7 @@ public final class ShapeAxis {
             return arguments;
         }
         List<String> result = new ArrayList<>(arguments.size());
-        for (String argument : arguments) {
+        for (String argument : ShapeParameters.joinSpacedEquals(arguments)) {
             String lower = argument.trim().toLowerCase(Locale.ROOT);
             String word = lower.startsWith(NAME + "=") ? lower.substring(NAME.length() + 1).trim() : lower;
             int axis = fromWord(word);

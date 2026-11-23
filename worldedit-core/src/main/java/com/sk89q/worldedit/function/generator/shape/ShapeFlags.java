@@ -63,10 +63,34 @@ public final class ShapeFlags {
      * @return the result
      */
     public static ShapeFlags parse(List<String> arguments, String switchNames, String valueNames, String textNames) {
+        return parse(arguments, switchNames, valueNames, textNames, false);
+    }
+
+    /**
+     * Pick only well-formed known switches and flags with a number out of free text, such as the
+     * words of {@code //text}. Anything else that starts with {@code -}, such as {@code -x} or
+     * {@code -s} without a number after it, is kept as text.
+     *
+     * @param arguments the arguments
+     * @param switchNames letters of switches
+     * @param valueNames letters of flags that take a number
+     * @return the result
+     */
+    public static ShapeFlags parseInText(List<String> arguments, String switchNames, String valueNames) {
+        return parse(arguments, switchNames, valueNames, "", true);
+    }
+
+    private static ShapeFlags parse(List<String> arguments, String switchNames, String valueNames, String textNames,
+                                    boolean lenient) {
         ShapeFlags flags = new ShapeFlags();
         for (int i = 0; i < arguments.size(); i++) {
             String argument = arguments.get(i);
             if (argument.length() < 2 || argument.charAt(0) != '-' || !Character.isLetter(argument.charAt(1))) {
+                flags.remaining.add(argument);
+                continue;
+            }
+            if (lenient && !isWellFormed(argument.substring(1), i + 1 < arguments.size() ? arguments.get(i + 1) : null,
+                switchNames, valueNames)) {
                 flags.remaining.add(argument);
                 continue;
             }
@@ -96,6 +120,25 @@ public final class ShapeFlags {
             }
         }
         return flags;
+    }
+
+    private static boolean isWellFormed(String letters, String next, String switchNames, String valueNames) {
+        for (int j = 0; j < letters.length(); j++) {
+            char c = letters.charAt(j);
+            if (valueNames.indexOf(c) >= 0) {
+                if (j != letters.length() - 1 || next == null) {
+                    return false;
+                }
+                try {
+                    Double.parseDouble(next);
+                } catch (NumberFormatException _) {
+                    return false;
+                }
+            } else if (switchNames.indexOf(c) < 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

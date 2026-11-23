@@ -135,7 +135,17 @@ class SavedInputParserTest extends BaseWorldEditTest {
 
     @Test
     void unknownNamesAreLeftToOtherParsers() throws InputParseException {
-        assertNull(parser.parseFromInput("#nothing", context));
+        InputParseException e = assertThrows(InputParseException.class,
+            () -> factory.parseFromInput("#nothing", context));
+        assertEquals("No saved pattern called #nothing (see //pattern list).", e.getMessage());
+        // a parser registered after the saved names still gets its #names
+        factory.register(new InputParser<>(worldEdit) {
+            @Override
+            public String parseFromInput(String input, ParserContext context) {
+                return input.equals("#later") ? "later" : null;
+            }
+        });
+        assertEquals("later", factory.parseFromInput("#later", context));
         assertNull(parser.parseFromInput("##tag", context));
         assertNull(parser.parseFromInput("#bad[name]", context));
         assertNull(parser.parseFromInput("stone", context));

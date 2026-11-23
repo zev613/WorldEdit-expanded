@@ -55,7 +55,7 @@ public final class GiantMushroomGenerator {
      * The settings, in the order plain numbers fill them.
      */
     public static final List<ShapeParameter> PARAMETERS = List.of(
-        new ShapeParameter("type", 0, 0, 2, "cap: " + NamedSettings.describe(TYPES)),
+        new ShapeParameter("type", 0, 0, 2, "cap: " + NamedSettings.describe(TYPES)).withChoices(TYPES),
         NatureMath.SEED
     );
 

@@ -140,8 +140,9 @@ public class StyleCommands {
             // check the blocks before saving
             SkyscraperCommands.patterns(baseStyle.withOverrides(overrides.overrides()), actor, world, session,
                 editSession);
+            boolean existed = library.getSaved().stream().anyMatch(style -> style.name().equalsIgnoreCase(name.trim()));
             BuildingStyle saved = library.save(name, base, overrides.overrides());
-            actor.printInfo(TextComponent.of("Saved style " + saved.name() + " (based on " + saved.family()
+            actor.printInfo(TextComponent.of((existed ? "Replaced style " : "Saved style ") + saved.name() + " (based on " + saved.family()
                 + "). Build with //skyscraper " + saved.name() + " <stories>"));
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));

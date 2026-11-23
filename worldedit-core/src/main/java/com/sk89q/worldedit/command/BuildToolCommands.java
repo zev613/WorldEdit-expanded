@@ -42,6 +42,7 @@ import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.buildtools.FindResults;
 import com.sk89q.worldedit.util.buildtools.LightFillSolver;
 import com.sk89q.worldedit.util.buildtools.RethemeMapper;
+import com.sk89q.worldedit.util.formatting.Counts;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
 import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
@@ -356,7 +357,7 @@ public class BuildToolCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of("Placed " + set + " light source(s) (light " + level + "). "
+        actor.printInfo(TextComponent.of("Placed " + Counts.of(set, "light source") + " (light " + level + "). "
             + darkBefore + " of " + spots + " spawnable spots were below light " + minLight + "."));
         int darkAfter = solver.countDark(minLight);
         if (darkAfter > 0) {

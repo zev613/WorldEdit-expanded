@@ -147,13 +147,12 @@ public final class ShapeLibrary {
         }
         NamedShape base = find(baseName)
             .orElseThrow(() -> new IllegalArgumentException("Unknown shape '" + baseName + "'"));
-        List<String> settings = new ArrayList<>();
+        List<String> settings = new ArrayList<>(arguments);
         if (base instanceof PresetShape preset) {
-            // start from that preset's settings, then apply the new ones
-            settings.addAll(preset.getSettingArguments());
+            // start from that preset's settings (its defaults), then apply the new ones
+            settings = new PresetShape(key, preset, arguments).getSettingArguments();
             base = preset.getBase();
         }
-        settings.addAll(arguments);
         PresetShape created = new PresetShape(key, base, settings);
         // store the fully-resolved settings so the file is easy to read
         created = new PresetShape(key, base, created.getSettingArguments());

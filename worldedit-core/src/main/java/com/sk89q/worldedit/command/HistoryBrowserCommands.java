@@ -86,8 +86,10 @@ public class HistoryBrowserCommands {
                         @Arg(desc = "A page number, or undo, redo, info or tp", def = "1")
                             String action,
                         @Arg(desc = "The edit: its number in the list (1 = newest)", def = "")
-                            String edit) throws WorldEditException {
-        String verb = action.toLowerCase(Locale.ROOT);
+                            @Nullable String editArg) throws WorldEditException {
+        // An @Arg with def = "" arrives as null when it is left out.
+        String edit = editArg == null ? "" : editArg.trim();
+        String verb = action == null ? "1" : action.toLowerCase(Locale.ROOT);
         if (!verb.isEmpty() && verb.chars().allMatch(Character::isDigit)) {
             list(actor, session, parsePage(verb));
             return;
@@ -102,7 +104,8 @@ public class HistoryBrowserCommands {
             return;
         }
         if (edit.isEmpty()) {
-            actor.printError(TextComponent.of("Which edit? E.g. //history " + verb + " 2 (see //history)."));
+            actor.printError(TextComponent.of("Which edit? //history " + verb
+                + " <number>, where 1 is your newest edit (see //history)."));
             return;
         }
         HistoryListing listing = listing(session);

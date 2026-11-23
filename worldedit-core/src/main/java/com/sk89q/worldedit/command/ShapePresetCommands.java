@@ -26,6 +26,7 @@ import com.sk89q.worldedit.command.util.ShapeLibraryHolder;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.function.generator.shape.NamedShape;
 import com.sk89q.worldedit.function.generator.shape.PresetShape;
+import com.sk89q.worldedit.util.formatting.Counts;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
 import com.sk89q.worldedit.util.formatting.text.format.TextColor;
@@ -58,8 +59,10 @@ public class ShapePresetCommands {
                          List<HintedArguments.SettingWord> settingWords) {
         List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         try {
+            boolean existed = ShapeLibraryHolder.get().getPresets().stream()
+                .anyMatch(p -> p.getName().equalsIgnoreCase(name));
             PresetShape preset = ShapeLibraryHolder.get().savePreset(name, shape.getName(), settings);
-            actor.printInfo(TextComponent.of("Saved preset " + preset.getName() + " (" + preset.getDescription()
+            actor.printInfo(TextComponent.of((existed ? "Replaced preset " : "Saved preset ") + preset.getName() + " (" + preset.getDescription()
                 + "). Use it with //shape " + preset.getName() + " <pattern> <size>"));
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));
@@ -76,9 +79,9 @@ public class ShapePresetCommands {
                        @Arg(desc = "The preset name")
                            String name) {
         if (ShapeLibraryHolder.get().deletePreset(name)) {
-            actor.printInfo(TextComponent.of("Deleted preset " + name));
+            actor.printInfo(TextComponent.of("Deleted preset " + name + "."));
         } else {
-            actor.printError(TextComponent.of("There is no preset called " + name));
+            actor.printError(TextComponent.of("There is no preset called " + name + ". See //shapedef list."));
         }
     }
 
@@ -93,7 +96,7 @@ public class ShapePresetCommands {
             actor.printInfo(TextComponent.of("No presets yet. Save one with //shapedef save <name> <shape> [settings]"));
             return;
         }
-        actor.printInfo(TextComponent.of(presets.size() + " preset(s):"));
+        actor.printInfo(TextComponent.of(Counts.of(presets.size(), "preset") + ":"));
         for (PresetShape preset : presets) {
             actor.print(TextComponent.of(preset.getName(), TextColor.YELLOW)
                 .clickEvent(ClickEvent.suggestCommand("//shape " + preset.getName() + " "))

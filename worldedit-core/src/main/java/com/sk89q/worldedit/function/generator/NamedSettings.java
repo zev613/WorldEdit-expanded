@@ -21,6 +21,7 @@
 package com.sk89q.worldedit.function.generator;
 
 import com.google.common.base.Splitter;
+import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 
 import java.util.List;
 import java.util.Locale;
@@ -47,7 +48,7 @@ public final class NamedSettings {
      */
     public static List<String> replaceNames(List<String> arguments, String setting, List<String> names) {
         String prefix = setting + "=";
-        return arguments.stream().map(argument -> {
+        return ShapeParameters.joinSpacedEquals(arguments).stream().map(argument -> {
             String word = argument.trim().toLowerCase(Locale.ROOT);
             boolean named = word.startsWith(prefix);
             if (named) {

@@ -348,7 +348,7 @@ public class BuildPartCommands {
         BlockText text;
         try {
             // flags typed after the text end up in the text, so pick them out here
-            ShapeFlags flags = ShapeFlags.parse(words, "fc", "sd");
+            ShapeFlags flags = ShapeFlags.parseInText(words, "fc", "sd");
             flat |= flags.has('f');
             atCrosshair |= flags.has('c');
             scale = (int) flags.value('s', scale);

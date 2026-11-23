@@ -76,4 +76,25 @@ class ShapeFlagsTest {
         assertEquals(List.of("10", "windows=4"), flags.remaining());
         assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-w"), "", "", "w"));
     }
+
+    @Test
+    void flagWithoutValueSaysSo() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+            () -> ShapeFlags.parse(List.of("6", "-m"), "h", "a", "m"));
+        assertEquals("-m needs a value after it", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> ShapeFlags.parse(List.of("-a"), "h", "a", "m"));
+        assertEquals("-a needs a number after it", e.getMessage());
+    }
+
+    @Test
+    void textKeepsUnknownAndMalformedFlags() {
+        ShapeFlags flags = ShapeFlags.parseInText(List.of("Floor", "-5", "and", "-x", "-s", "2", "-f", "-dash"),
+            "fc", "sd");
+        assertEquals(List.of("Floor", "-5", "and", "-x", "-dash"), flags.remaining());
+        assertEquals(2, flags.value('s', 1));
+        assertTrue(flags.has('f'));
+        flags = ShapeFlags.parseInText(List.of("A", "-s", "big"), "fc", "sd");
+        assertEquals(List.of("A", "-s", "big"), flags.remaining());
+        assertEquals(1, flags.value('s', 1));
+    }
 }

@@ -31,6 +31,7 @@ import com.sk89q.worldedit.history.SelectiveUndo;
 import com.sk89q.worldedit.history.persistent.PersistentHistory;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.session.HistoryListener;
+import com.sk89q.worldedit.util.formatting.Counts;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldedit.world.block.BaseBlock;
@@ -94,13 +95,15 @@ final class HistoryPersistenceHelper {
             reverted += toRevert.size();
         }
         if (reverted > 0) {
-            actor.printInfo(TextComponent.of("Selectively undid " + reverted + " block change(s) in " + entries
-                + " edit(s). The rest of those edits is still in your history."));
+            actor.printInfo(TextComponent.of("Selectively undid " + Counts.of(reverted, "block change") + " in "
+                + Counts.of(entries, "edit") + ". The rest of " + (entries == 1 ? "that edit is" : "those edits are")
+                + " still in your history."));
         } else if (session.getUndoHistoryEntry(0) == null) {
             actor.printError(TextComponent.of("Nothing to undo in this session's history (selective undo does not "
                 + "use edits restored from disk)."));
         } else {
-            actor.printError(TextComponent.of("No block changes in the last " + times + " edit(s) match the mask."));
+            actor.printError(TextComponent.of("No block changes in the last " + (times == 1 ? "edit" : Counts.of(times, "edit"))
+                + " match the mask."));
         }
     }
 

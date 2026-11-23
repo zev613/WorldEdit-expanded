@@ -38,6 +38,7 @@ import com.sk89q.worldedit.function.generator.model.SweepPath;
 import com.sk89q.worldedit.function.generator.model.SweepProfile;
 import com.sk89q.worldedit.function.generator.model.Sweeper;
 import com.sk89q.worldedit.function.generator.shape.ShapeFlags;
+import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
 import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 import com.sk89q.worldedit.function.pattern.Pattern;
 import com.sk89q.worldedit.internal.annotation.Selection;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.sk89q.worldedit.command.util.Logging.LogMode.PLACEMENT;
@@ -255,7 +257,25 @@ public class ModelCommands {
                         + SweepProfile.names() + ", or clipboard.");
                 }
                 SweepProfile profile = found.get();
-                ShapeParameters parameters = ShapeParameters.parse(profile.getParameters(), flags.remaining());
+                for (String word : ShapeParameters.joinSpacedEquals(flags.remaining())) {
+                    // piston skips a width it cannot read, so it ends up among the settings
+                    if (!word.contains("=") && !isNumber(word)) {
+                        throw new IllegalArgumentException("'" + word + "' is not a width or setting; //sweep "
+                            + profile.label() + " <pattern> <width> [settings]"
+                            + (profile.getParameters().isEmpty() ? " (" + profile.label() + " has no settings)"
+                                : ", settings: " + profile.getParameters().stream().map(ShapeParameter::name)
+                                    .collect(Collectors.joining(", "))) + ".");
+                    }
+                }
+                ShapeParameters parameters;
+                try {
+                    parameters = ShapeParameters.parse(profile.getParameters(), flags.remaining());
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException(e.getMessage()
+                        .replace("This shape has no parameters.",
+                            "The " + profile.label() + " profile has no settings.")
+                        .replace("Valid parameters", "Its settings"), e);
+                }
                 CrossSection<Boolean> section = profile.create(size, parameters);
                 worldEdit.checkMaxRadius(section.reach());
                 Map<BlockVector3, Boolean> blocks = Sweeper.sweep(path, section, hollow && !profile.isOpenAlready());
@@ -395,6 +415,15 @@ public class ModelCommands {
             case Y -> sign > 0 ? "up" : "down";
             case Z -> sign > 0 ? "south" : "north";
         };
+    }
+
+    private static boolean isNumber(String text) {
+        try {
+            Double.parseDouble(text);
+            return true;
+        } catch (NumberFormatException _) {
+            return false;
+        }
     }
 
     private static String formatDegrees(double degrees) {

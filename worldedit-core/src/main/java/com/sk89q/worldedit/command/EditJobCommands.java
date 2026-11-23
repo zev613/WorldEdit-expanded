@@ -25,6 +25,7 @@ import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.session.job.EditJob;
 import com.sk89q.worldedit.session.job.EditJobQueue;
+import com.sk89q.worldedit.util.formatting.Counts;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
@@ -98,7 +99,7 @@ public class EditJobCommands {
                     "Other players' jobs are queued; you need worldedit.jobs.others to finish them");
                 int count = queue.getJobs().size();
                 queue.completeJobs(null);
-                actor.printInfo(TextComponent.of("Finished " + count + " job(s)."));
+                actor.printInfo(TextComponent.of("Finished " + Counts.of(count, "job") + "."));
             }
             default -> actor.printError(TextComponent.of("Unknown action '" + action + "'. Use list, cancel or finish."));
         }

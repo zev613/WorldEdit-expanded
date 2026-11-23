@@ -34,6 +34,7 @@ import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.function.clipboard.ClipboardGround;
 import com.sk89q.worldedit.function.clipboard.ClipboardScaler;
+import com.sk89q.worldedit.function.clipboard.CopyLimit;
 import com.sk89q.worldedit.function.clipboard.GridLayout;
 import com.sk89q.worldedit.function.clipboard.PathSampler;
 import com.sk89q.worldedit.function.clipboard.RadialLayout;
@@ -157,13 +158,23 @@ public class ClipboardToolCommands {
             actor.printError(TextComponent.of(e.getMessage()));
             return;
         }
+        List<TransformedClipboardPlacer> placers = new ArrayList<>();
+        for (int i = 0; i < layout.getCount(); i++) {
+            placers.add(new TransformedClipboardPlacer(clipboard, layout.transform(i), ignoreAir));
+        }
+        try {
+            CopyLimit.check(placers);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
         BlockVector3 to = CrosshairPlacement.placement(session, actor, atCrosshair);
         int changed = 0;
-        for (int i = 0; i < layout.getCount(); i++) {
-            changed += new TransformedClipboardPlacer(clipboard, layout.transform(i), ignoreAir).place(editSession, to);
+        for (TransformedClipboardPlacer placer : placers) {
+            changed += placer.place(editSession, to);
         }
-        actor.printInfo(TextComponent.of("Pasted " + count + " copies around " + to
-            + " (" + changed + " blocks)."));
+        actor.printInfo(TextComponent.of("Pasted " + CopyLimit.plural(count, "copy", "copies") + " around " + to
+            + " (" + CopyLimit.plural(changed, "block", "blocks") + ")."));
     }
 
     @Command(
@@ -209,27 +220,35 @@ public class ClipboardToolCommands {
 
         // work out every placement first, so ground checks see the world as it was
         List<TransformedClipboardPlacer> placers = new ArrayList<>();
-        List<BlockVector3> targets = new ArrayList<>();
         for (PathSampler.PathPoint point : points) {
             AffineTransform transform = followPath
                 ? RadialLayout.clockwise(point.heading() - firstHeading)
                 : new AffineTransform();
-            TransformedClipboardPlacer placer = new TransformedClipboardPlacer(clipboard, transform, ignoreAir);
-            Vector3 p = point.position();
+            placers.add(new TransformedClipboardPlacer(clipboard, transform, ignoreAir));
+        }
+        try {
+            CopyLimit.check(placers);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        List<BlockVector3> targets = new ArrayList<>();
+        for (int i = 0; i < points.size(); i++) {
+            TransformedClipboardPlacer placer = placers.get(i);
+            Vector3 p = points.get(i).position();
             BlockVector3 to = BlockVector3.at(Math.floor(p.x() + 0.5), Math.floor(p.y() + 0.5), Math.floor(p.z() + 0.5));
             if (toGround) {
                 to = ClipboardGround.onGround(editSession, editSession.getWorld().getMinY(),
                     editSession.getWorld().getMaxY(), placer, to, lowest);
             }
-            placers.add(placer);
             targets.add(to);
         }
         int changed = 0;
         for (int i = 0; i < placers.size(); i++) {
             changed += placers.get(i).place(editSession, targets.get(i));
         }
-        actor.printInfo(TextComponent.of("Pasted " + placers.size() + " copies along the path ("
-            + changed + " blocks)."));
+        actor.printInfo(TextComponent.of("Pasted " + CopyLimit.plural(placers.size(), "copy", "copies")
+            + " along the path (" + CopyLimit.plural(changed, "block", "blocks") + ")."));
     }
 
     @Command(
@@ -331,9 +350,13 @@ public class ClipboardToolCommands {
         for (int i = 0; i < placers.size(); i++) {
             changed += placers.get(i).place(editSession, targets.get(i));
         }
-        actor.printInfo(TextComponent.of("Placed a " + columns + " x " + rows + " grid (" + placers.size()
-            + " copies, " + changed + " blocks)" + (turning ? ", random turns with seed " + seedValue : "")
-            + "."));
+        String copies = CopyLimit.plural(placers.size(), "copy", "copies");
+        if (useSelection) {
+            copies = CopyLimit.plural(placers.size(), "new copy", "new copies") + " plus the original";
+        }
+        actor.printInfo(TextComponent.of("Placed a " + columns + " x " + rows + " grid (" + copies + ", "
+            + CopyLimit.plural(changed, "block", "blocks") + ")"
+            + (turning ? ", random turns with seed " + seedValue : "") + "."));
     }
 
     private static long parseSeed(String seed) {

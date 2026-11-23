@@ -19,7 +19,12 @@
 
 package com.sk89q.worldedit.function.generator.shape;
 
+import com.google.common.base.Splitter;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,14 +37,112 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @param min the smallest allowed value
  * @param max the largest allowed value
  * @param description a short description for help output
+ * @param integer whether only whole numbers are allowed (counts such as points or sides)
+ * @param choices names that may be typed instead of the numbers 0, 1, 2, ..., by number; several
+ *     names for one number are joined with {@code |} (empty when the setting has no names)
  */
-public record ShapeParameter(String name, double defaultValue, double min, double max, String description) {
+public record ShapeParameter(String name, double defaultValue, double min, double max, String description,
+                             boolean integer, List<String> choices) {
+
+    /**
+     * Names of settings that count things. When such a setting's default and range are whole
+     * numbers, it only takes whole numbers.
+     */
+    private static final Set<String> COUNT_NAMES = Set.of("points", "count", "sides", "level", "loops", "winds",
+        "arms", "coils", "floors", "rungs", "spokes", "strands", "twists", "windows", "setbacks", "seed",
+        "detail", "story");
+
+    private static final Splitter CHOICE_SPLITTER = Splitter.on('|');
 
     public ShapeParameter {
         checkNotNull(name);
         checkNotNull(description);
+        choices = List.copyOf(choices);
         checkArgument(min <= max, "min > max");
         checkArgument(defaultValue >= min && defaultValue <= max, "default out of range for %s", name);
+    }
+
+    /**
+     * Create a parameter. Settings named like a count ({@code points}, {@code sides}, ...) with a
+     * whole-number default and range only take whole numbers.
+     *
+     * @param name the name
+     * @param defaultValue the default
+     * @param min the smallest allowed value
+     * @param max the largest allowed value
+     * @param description a short description
+     */
+    public ShapeParameter(String name, double defaultValue, double min, double max, String description) {
+        this(name, defaultValue, min, max, description,
+            COUNT_NAMES.contains(name) && isWhole(defaultValue) && isWhole(min) && isWhole(max), List.of());
+    }
+
+    private static boolean isWhole(double value) {
+        return value == Math.rint(value);
+    }
+
+    /**
+     * Get a copy that only takes whole numbers.
+     *
+     * @return the copy
+     */
+    public ShapeParameter whole() {
+        return new ShapeParameter(name, defaultValue, min, max, description, true, choices);
+    }
+
+    /**
+     * Get a copy where the numbers can also be typed as names.
+     *
+     * @param names the names, by number (several names for one number joined with {@code |})
+     * @return the copy
+     */
+    public ShapeParameter withChoices(List<String> names) {
+        return new ShapeParameter(name, defaultValue, min, max, description, true, names);
+    }
+
+    /**
+     * Get a copy with another default.
+     *
+     * @param value the new default
+     * @return the copy
+     */
+    public ShapeParameter withDefault(double value) {
+        return new ShapeParameter(name, value, min, max, description, integer, choices);
+    }
+
+    /**
+     * Find the number of a choice name.
+     *
+     * @param word the word typed
+     * @return the number, or -1 if it is not one of the names
+     */
+    public int choiceNumber(String word) {
+        String lower = word.trim().toLowerCase(Locale.ROOT);
+        for (int i = 0; i < choices.size(); i++) {
+            for (String choice : CHOICE_SPLITTER.split(choices.get(i))) {
+                if (choice.equals(lower)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * The message for a word that is not one of the choices, e.g.
+     * "Unknown type 'square'. Choose round, flat or bell.".
+     *
+     * @param word the word typed
+     * @return the message
+     */
+    public String unknownChoice(String word) {
+        List<String> first = new ArrayList<>();
+        for (String choice : choices) {
+            first.add(CHOICE_SPLITTER.split(choice).iterator().next());
+        }
+        String list = first.size() <= 1 ? String.join("", first)
+            : String.join(", ", first.subList(0, first.size() - 1)) + " or " + first.getLast();
+        return "Unknown " + name + " '" + word + "'. Choose " + list + ".";
     }
 
     /**

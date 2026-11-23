@@ -92,9 +92,9 @@ public class SmartSelectionCommands {
     public void selectConnected(Actor actor, World world, LocalSession session,
                                 @Arg(desc = "Which blocks to select, e.g. gravel or stone_bricks,stone_brick_stairs")
                                     String maskInput,
-                                @Arg(desc = "How far from the start block to spread, in blocks (0 = server default)",
-                                    def = "0")
-                                    int maxDistance,
+                                @Arg(desc = "How far from the start block to spread, in blocks (default: the "
+                                    + "server's limit)", def = "")
+                                    Integer maxDistance,
                                 @Switch(name = 'd', desc = "Also connect blocks that only touch at edges or corners")
                                     boolean diagonal,
                                 @Switch(name = 'p', desc = "Select a polygon (//sel poly) around the blocks instead")
@@ -107,6 +107,9 @@ public class SmartSelectionCommands {
             return;
         }
         int distance = distanceLimit(actor, maxDistance);
+        if (distance <= 0) {
+            return;
+        }
         Start start;
         if (actor instanceof Player player) {
             BlockVector3 feet = player.getBlockOn().toVector().toBlockPoint();
@@ -140,7 +143,8 @@ public class SmartSelectionCommands {
             (x, y, z) -> y >= world.getMinY() && y <= world.getMaxY() && mask.test(BlockVector3.at(x, y, z)),
             diagonal, distance, blockLimit());
         select(actor, world, session, result, start, "Connected blocks",
-            maskInput + (diagonal ? " (with diagonals)" : ""), distance, poly);
+            maskInput + (diagonal ? " (with diagonals)" : ""),
+            "of " + maskInput + (diagonal ? ", with diagonals," : ""), distance, poly);
     }
 
     @Command(
@@ -153,14 +157,17 @@ public class SmartSelectionCommands {
     )
     @CommandPermissions("worldedit.selection.build")
     public void selectBuild(Actor actor, World world, LocalSession session,
-                            @Arg(desc = "How far from the start block to spread, in blocks (0 = server default)",
-                                def = "0")
-                                int maxDistance,
+                            @Arg(desc = "How far from the start block to spread, in blocks (default: the "
+                                + "server's limit)", def = "")
+                                Integer maxDistance,
                             @Switch(name = 'g', desc = "Also select the layer of ground touching the build")
                                 boolean ground,
                             @Switch(name = 'p', desc = "Select a polygon (//sel poly) around the build instead")
                                 boolean poly) throws WorldEditException {
         int distance = distanceLimit(actor, maxDistance);
+        if (distance <= 0) {
+            return;
+        }
         Start start;
         if (actor instanceof Player player) {
             Mask stop = new AbstractMask() {
@@ -209,7 +216,8 @@ public class SmartSelectionCommands {
                 result.reachedBlockLimit() || withGround.size() >= blockLimit());
         }
         select(actor, world, session, result, start, "Build",
-            "from " + start.position() + (ground ? " with its ground layer" : ""), distance, poly);
+            "from " + start.position() + (ground ? " with its ground layer" : ""),
+            "of the build" + (ground ? " with its ground layer," : ""), distance, poly);
     }
 
     @Command(
@@ -395,11 +403,10 @@ public class SmartSelectionCommands {
     }
 
     private void select(Actor actor, World world, LocalSession session, ConnectedBlockSearch.Result result,
-                        Start start, String kind, String label, int distance, boolean poly) {
+                        Start start, String kind, String label, String summary, int distance, boolean poly) {
         BlockPosSet blocks = result.blocks();
         BlockVector3 min = blocks.getMinimum();
         BlockVector3 max = blocks.getMaximum();
-        String description = kind.equals("Build") ? "build " + label : label;
         RegionSelector selector;
         String extra = "";
         if (poly) {
@@ -409,9 +416,10 @@ public class SmartSelectionCommands {
                 FootprintOutline.simplify(footprint.trace(), limit));
             selector = new Polygonal2DRegionSelector(world, outline, min.y(), max.y());
             long outside = footprint.countOutside(outline);
-            extra = " Polygon with " + outline.size() + " points, " + selector.getVolume() + " blocks in all."
-                + (outside > 0 ? " " + outside + " columns at the edge did not fit inside the outline with only "
-                + limit + " points." : "");
+            extra = String.format(Locale.ROOT, " Polygon with %,d points, %,d blocks in all.", outline.size(),
+                selector.getVolume())
+                + (outside > 0 ? String.format(Locale.ROOT, " %,d %s at the edge did not fit inside the outline "
+                + "with only %,d points.", outside, outside == 1 ? "column" : "columns", limit) : "");
         } else {
             if (!blocks.fitsVoxelGrid()) {
                 actor.printError(TextComponent.of("Those blocks are spread over too large an area to select "
@@ -425,24 +433,33 @@ public class SmartSelectionCommands {
         }
         session.setRegionSelector(world, selector);
         session.dispatchCUISelection(actor);
-        actor.printInfo(TextComponent.of(String.format(Locale.ROOT, "Selected %,d blocks (%s) starting at %s, "
-            + "size %s.%s", blocks.size(), description,
+        actor.printInfo(TextComponent.of(String.format(Locale.ROOT, "Selected %,d %s %s starting at %s, "
+            + "size %s.%s", blocks.size(), blocks.size() == 1 ? "block" : "blocks", summary,
             start.description(), size(min, max), extra)));
         if (result.reachedBlockLimit()) {
             actor.printError(TextComponent.of(String.format(Locale.ROOT, "Stopped at the limit of %,d blocks; "
                 + "the selection is incomplete.", blockLimit())));
         }
         if (result.reachedDistanceLimit()) {
-            actor.printError(TextComponent.of("More matching blocks continue beyond " + distance
+            actor.printError(TextComponent.of(String.format(Locale.ROOT, "More matching blocks continue beyond %,d",
+                distance)
                 + " blocks from the start; they were not selected."));
         }
     }
 
-    private int distanceLimit(Actor actor, int requested) {
+    /**
+     * The distance to search, or 0 (after printing why) if the requested distance is not allowed.
+     */
+    private int distanceLimit(Actor actor, @Nullable Integer requested) {
         LocalConfiguration config = worldEdit.getConfiguration();
         int cap = Math.max(1, Math.min(ConnectedBlockSearch.MAX_DISTANCE, config.maxConnectedSelectionDistance));
-        if (requested <= 0) {
+        if (requested == null) {
             return cap;
+        }
+        if (requested <= 0) {
+            actor.printError(TextComponent.of("The distance must be at least 1 block (leave it out to use the "
+                + "server's limit of " + cap + ")."));
+            return 0;
         }
         if (requested > cap) {
             actor.printInfo(TextComponent.of("The distance is limited to " + cap + " blocks on this server."));

@@ -117,7 +117,7 @@ public class SavedInputParser<E> extends InputParser<E> {
             value = getStore().get(key).orElse(null);
         }
         if (value == null) {
-            return null;
+            return unknownName(input, context, key);
         }
         Deque<String> resolving = RESOLVING.get();
         if (resolving.contains(token)) {
@@ -142,6 +142,31 @@ public class SavedInputParser<E> extends InputParser<E> {
         } finally {
             resolving.pop();
         }
+    }
+
+    /**
+     * A {@code #name} that is not saved: give the parsers after this one a chance, and if none of
+     * them knows it either, say that there is no such saved entry (instead of the block parser's
+     * "Block name '#name' was not recognized").
+     */
+    private @Nullable E unknownName(String input, ParserContext context, String key) throws InputParseException {
+        List<? extends InputParser<E>> parsers = factory.apply(worldEdit).getParsers();
+        int self = parsers.indexOf(this);
+        if (self < 0) {
+            return null;
+        }
+        for (InputParser<E> parser : parsers.subList(self + 1, parsers.size())) {
+            try {
+                E result = parser.parseFromInput(input, context);
+                if (result != null) {
+                    return result;
+                }
+            } catch (InputParseException _) {
+                // fall through to the message below
+            }
+        }
+        throw new InputParseException(TextComponent.of("No saved " + kind() + " called #" + key
+            + " (see //" + kind() + " list)."));
     }
 
     /**

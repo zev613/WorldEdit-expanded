@@ -52,7 +52,7 @@ public final class PresetShape extends NamedShape {
     private PresetShape(String name, NamedShape base, ShapeParameters settings) {
         super(name, List.of(), "Presets", "Preset: " + describe(base, settings),
             base.getParameters().stream()
-                .map(p -> new ShapeParameter(p.name(), settings.get(p.name()), p.min(), p.max(), p.description()))
+                .map(p -> p.withDefault(settings.get(p.name())))
                 .collect(ImmutableList.toImmutableList()));
         this.base = base;
         this.settings = settings;

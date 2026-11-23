@@ -42,7 +42,7 @@ public final class GridLayout {
     /**
      * The most blocks all copies together may cover.
      */
-    public static final long MAX_VOLUME = 50_000_000L;
+    public static final long MAX_VOLUME = CopyLimit.MAX_BLOCKS;
 
     /**
      * The largest spacing allowed.
@@ -115,8 +115,8 @@ public final class GridLayout {
         }
         long copies = (long) columns * rows;
         if (copies > MAX_COPIES) {
-            throw new IllegalArgumentException("That is " + copies + " copies; at most " + MAX_COPIES
-                + " are allowed.");
+            throw new IllegalArgumentException("That is " + CopyLimit.format(copies) + " copies; at most "
+                + CopyLimit.format(MAX_COPIES) + " are allowed.");
         }
         if (spacingRight < 0 || spacingForward < 0 || spacingRight > MAX_SPACING || spacingForward > MAX_SPACING) {
             throw new IllegalArgumentException("The spacing must be between 0 and " + MAX_SPACING + ".");
@@ -125,11 +125,7 @@ public final class GridLayout {
             throw new IllegalArgumentException("The rise per row must be between -" + MAX_RISE + " and "
                 + MAX_RISE + ".");
         }
-        long total = copies * copyVolume;
-        if (total > MAX_VOLUME) {
-            throw new IllegalArgumentException("All copies together would cover " + total
-                + " blocks; at most " + MAX_VOLUME + " are allowed.");
-        }
+        CopyLimit.check(copies, copyVolume);
     }
 
     /**
