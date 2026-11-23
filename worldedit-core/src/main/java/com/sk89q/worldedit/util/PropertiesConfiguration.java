@@ -116,6 +116,8 @@ public class PropertiesConfiguration extends LocalConfiguration {
         navigationWand = convertLegacyItem(getString("nav-wand-item", navigationWand)).toLowerCase(Locale.ROOT);
         navigationWandMaxDistance = getInt("nav-wand-distance", navigationWandMaxDistance);
         jumptoMaxDistance = getInt("jumpto-max-distance", jumptoMaxDistance);
+        maxConnectedSelectionDistance = getInt("max-connected-selection-distance", maxConnectedSelectionDistance);
+        maxConnectedSelectionBlocks = getInt("max-connected-selection-blocks", maxConnectedSelectionBlocks);
         navigationUseGlass = getBool("nav-use-glass", navigationUseGlass);
         scriptTimeout = getInt("scripting-timeout", scriptTimeout);
         calculationTimeout = getInt("calculation-timeout", calculationTimeout);

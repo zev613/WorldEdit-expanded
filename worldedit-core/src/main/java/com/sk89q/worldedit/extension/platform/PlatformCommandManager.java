@@ -74,6 +74,8 @@ import com.sk89q.worldedit.command.ShapeCommands;
 import com.sk89q.worldedit.command.ShapeCommandsRegistration;
 import com.sk89q.worldedit.command.ShapePresetCommands;
 import com.sk89q.worldedit.command.ShapePresetCommandsRegistration;
+import com.sk89q.worldedit.command.SmartSelectionCommands;
+import com.sk89q.worldedit.command.SmartSelectionCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotCommands;
 import com.sk89q.worldedit.command.SnapshotCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotUtilCommands;
@@ -471,6 +473,11 @@ public final class PlatformCommandManager {
             commandManager,
             ShapeCommandsRegistration.builder(),
             new ShapeCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            SmartSelectionCommandsRegistration.builder(),
+            new SmartSelectionCommands(worldEdit)
         );
         registerSubCommands(
             "/shapedef",

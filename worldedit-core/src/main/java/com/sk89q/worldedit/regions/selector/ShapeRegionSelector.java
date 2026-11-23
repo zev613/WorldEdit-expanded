@@ -54,6 +54,7 @@ public class ShapeRegionSelector implements RegionSelector, CUIRegion {
     private final ShapeRegion region;
     private final BlockVector3 anchorOffset;
     private final String description;
+    private final String kind;
     private boolean placed;
 
     /**
@@ -67,8 +68,24 @@ public class ShapeRegionSelector implements RegionSelector, CUIRegion {
      */
     public ShapeRegionSelector(@Nullable World world, VoxelGrid voxels, BlockVector3 position,
                                BlockVector3 anchorOffset, String description) {
+        this(world, voxels, position, anchorOffset, "Shape", description);
+    }
+
+    /**
+     * Create a selector holding an exact set of blocks.
+     *
+     * @param world the world, or null
+     * @param voxels the voxels, as offsets from the centre
+     * @param position the placement position
+     * @param anchorOffset where the centre is relative to the placement position
+     * @param kind what kind of selection this is, shown to the player, such as "Shape" or "Connected blocks"
+     * @param description a short description such as "heart 10" or "gravel"
+     */
+    public ShapeRegionSelector(@Nullable World world, VoxelGrid voxels, BlockVector3 position,
+                               BlockVector3 anchorOffset, String kind, String description) {
         checkNotNull(position);
         this.anchorOffset = checkNotNull(anchorOffset);
+        this.kind = checkNotNull(kind);
         this.description = checkNotNull(description);
         this.region = new ShapeRegion(world, voxels, position.add(anchorOffset));
         this.placed = true;
@@ -132,7 +149,7 @@ public class ShapeRegionSelector implements RegionSelector, CUIRegion {
     }
 
     private void explainMove(Actor actor, LocalSession session) {
-        actor.printInfo(TextComponent.of("Shape " + description + " moved to " + getAnchor()
+        actor.printInfo(TextComponent.of(kind + " " + description + " moved to " + getAnchor()
             + " (" + region.getVolume() + " blocks)."));
         session.describeCUI(actor);
     }
@@ -184,6 +201,24 @@ public class ShapeRegionSelector implements RegionSelector, CUIRegion {
         placed = false;
     }
 
+    /**
+     * What kind of selection this is, such as "Shape".
+     *
+     * @return the kind
+     */
+    public String getKind() {
+        return kind;
+    }
+
+    /**
+     * The description given when the selection was made.
+     *
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+
     @Override
     public String getTypeName() {
         return "shape";
@@ -192,11 +227,11 @@ public class ShapeRegionSelector implements RegionSelector, CUIRegion {
     @Override
     public List<Component> getSelectionInfoLines() {
         if (!placed) {
-            return List.of(TextComponent.of("Shape: " + description + " (not placed; click with the wand to place it)",
+            return List.of(TextComponent.of(kind + ": " + description + " (not placed; click with the wand to place it)",
                 TextColor.LIGHT_PURPLE));
         }
         return List.of(
-            TextComponent.of("Shape: " + description, TextColor.LIGHT_PURPLE),
+            TextComponent.of(kind + ": " + description, TextColor.LIGHT_PURPLE),
             TextComponent.of("Placed at: " + getAnchor(), TextColor.LIGHT_PURPLE),
             TextComponent.of("Bounds: " + region.getMinimumPoint() + " - " + region.getMaximumPoint(), TextColor.LIGHT_PURPLE)
         );
