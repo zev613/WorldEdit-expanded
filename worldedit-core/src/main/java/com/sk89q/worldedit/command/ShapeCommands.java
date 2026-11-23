@@ -23,6 +23,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.CrosshairPlacement;
@@ -125,7 +126,7 @@ public class ShapeCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                         List<String> settings,
+                         List<HintedArguments.SettingWord> settingWords,
                      @Switch(name = 'h', desc = "Make it hollow")
                          boolean hollow,
                      @Switch(name = 'b', desc = "Put the bottom of the shape at your position instead of its middle")
@@ -148,6 +149,7 @@ public class ShapeCommands {
                          Mask mask,
                        @Switch(name = 'x', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         Vector3 radii;
         ShapeParameters parameters;
         ShapeArray array;
@@ -216,7 +218,7 @@ public class ShapeCommands {
                             @Radii(3)
                                 List<Double> size,
                             @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                                List<String> settings,
+                                List<HintedArguments.SettingWord> settingWords,
                             @Switch(name = 'h', desc = "Select only the outer layer")
                                 boolean hollow,
                             @Switch(name = 'b', desc = "Put the bottom of the shape at your position instead of its middle")
@@ -229,9 +231,10 @@ public class ShapeCommands {
                                 double tilt,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         Vector3 radii;
         ShapeParameters parameters;
-        List<String> settingWords;
+        List<String> remainingSettings;
         try {
             ShapeFlags flags = ShapeFlags.parse(settings, "hbfc", "rt");
             hollow |= flags.has('h');
@@ -241,8 +244,8 @@ public class ShapeCommands {
             turn = flags.value('r', turn);
             tilt = flags.value('t', tilt);
             radii = parseSize(size);
-            settingWords = flags.remaining();
-            parameters = ShapeParameters.parse(shape.getParameters(), settingWords);
+            remainingSettings = flags.remaining();
+            parameters = ShapeParameters.parse(shape.getParameters(), remainingSettings);
         } catch (IllegalArgumentException e) {
             actor.printError(TextComponent.of(e.getMessage()));
             return;
@@ -262,7 +265,7 @@ public class ShapeCommands {
         BlockVector3 position = CrosshairPlacement.placement(session, actor, atCrosshair);
         BlockVector3 anchorOffset = bottom ? BlockVector3.at(0, -voxels.lowestY(), 0) : BlockVector3.ZERO;
         String description = shape.getName() + " " + formatSize(radii)
-            + (settingWords.isEmpty() ? "" : " " + String.join(" ", settingWords));
+            + (remainingSettings.isEmpty() ? "" : " " + String.join(" ", remainingSettings));
         ShapeRegionSelector selector = new ShapeRegionSelector(world, voxels, position, anchorOffset, description);
         session.setRegionSelector(world, selector);
         session.dispatchCUISelection(actor);

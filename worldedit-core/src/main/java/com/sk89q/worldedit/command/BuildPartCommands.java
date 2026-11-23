@@ -148,7 +148,7 @@ public class BuildPartCommands {
                      @Arg(desc = "The pattern of blocks to build with")
                          Pattern pattern,
                      @Arg(desc = "Settings: numbers in order, or name=value", def = "", variable = true)
-                         List<HintedArguments.PartSetting> settingWords,
+                         List<HintedArguments.SettingWord> settingWords,
                      @ArgFlag(name = 'w', desc = "The pattern for windows, panes and railings")
                          String detailInput,
                      @ArgFlag(name = 's', desc = "A stair block for the front edge of spiral staircase steps")
@@ -156,7 +156,7 @@ public class BuildPartCommands {
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
         String partName = partArg.value();
-        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.PartSetting::value);
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         BuildingPart part = BuildingParts.find(partName).orElse(null);
         if (part == null) {
             actor.printError(TextComponent.of("Unknown part '" + partName + "'. Use //builds to see them all."));

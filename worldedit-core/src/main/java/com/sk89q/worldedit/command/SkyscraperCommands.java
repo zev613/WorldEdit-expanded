@@ -133,11 +133,11 @@ public class SkyscraperCommands {
                               int stories,
                           @Arg(desc = "Settings (name=value or numbers in order) and role=block changes",
                               def = "", variable = true)
-                              List<HintedArguments.SkyscraperSetting> settingWords,
+                              List<HintedArguments.SettingWord> settingWords,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
         String styleName = styleArg.value();
-        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SkyscraperSetting::value);
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         BuildingStyle style = StyleLibraryHolder.get().find(styleName).orElse(null);
         if (style == null) {
             actor.printError(TextComponent.of("Unknown style '" + styleName + "'. Use //style list to see them."));

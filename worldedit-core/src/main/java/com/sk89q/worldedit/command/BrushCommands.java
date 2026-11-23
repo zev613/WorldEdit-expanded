@@ -24,6 +24,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.argument.HeightConverter;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.factory.FeatureGeneratorFactory;
 import com.sk89q.worldedit.command.factory.ReplaceFactory;
 import com.sk89q.worldedit.command.factory.TreeGeneratorFactory;
@@ -146,13 +147,14 @@ public class BrushCommands {
                            @Arg(desc = "The radius of the shape", def = "5")
                                double radius,
                            @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                               List<String> settings,
+                               List<HintedArguments.SettingWord> settingWords,
                            @Switch(name = 'h', desc = "Make hollow shapes")
                                boolean hollow,
                            @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
                                double turn,
                            @ArgFlag(name = 't', desc = "Tilt the shape by this many degrees", def = "0")
                                double tilt) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         worldEdit.checkMaxBrushRadius(radius);
         ShapeParameters parameters;
         try {

@@ -21,6 +21,7 @@ package com.sk89q.worldedit.command;
 
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.Logging;
@@ -76,9 +77,10 @@ public class WarpCommands {
                     @Arg(desc = "The warp (see //warps)")
                         NamedWarp warp,
                     @Arg(desc = "Warp settings: numbers in order, or name=value", def = "", variable = true)
-                        List<String> settings,
+                        List<HintedArguments.SettingWord> settingWords,
                     @Switch(name = 'c', desc = "Pull in blocks from outside the selection instead of air")
                         boolean copyOutside) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         WarpMap map;
         try {
             // flags typed after the settings end up in the settings list, so pick them out here

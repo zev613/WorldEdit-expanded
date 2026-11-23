@@ -22,6 +22,7 @@ package com.sk89q.worldedit.command;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.Logging;
@@ -99,11 +100,12 @@ public class AgeCommands {
     public int ruin(Actor actor, EditSession editSession, @Selection Region region,
                     @Arg(desc = "Settings: amount (0-1), seed; numbers in order or name=value",
                         def = "", variable = true)
-                        List<String> settings,
+                        List<HintedArguments.SettingWord> settingWords,
                     @Switch(name = 'r', desc = "Leave no rubble")
                         boolean noRubble,
                     @Switch(name = 'g', desc = "Grass, moss and dirt patches on flat surfaces")
                         boolean greenery) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         AgeSettings parsed = settings(actor, region, settings, "rg");
         if (parsed == null) {
             return 0;
@@ -136,11 +138,12 @@ public class AgeCommands {
     public int overgrow(Actor actor, EditSession editSession, @Selection Region region,
                         @Arg(desc = "Settings: amount (0-1), seed; numbers in order or name=value",
                             def = "", variable = true)
-                            List<String> settings,
+                            List<HintedArguments.SettingWord> settingWords,
                         @Switch(name = 'n', desc = "No flowers, just green")
                             boolean noFlowers,
                         @Switch(name = 'l', desc = "No glow lichen")
                             boolean noLichen) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         AgeSettings parsed = settings(actor, region, settings, "nl");
         if (parsed == null) {
             return 0;

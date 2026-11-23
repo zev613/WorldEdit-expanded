@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit.command;
 
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.ShapeLibraryHolder;
@@ -54,7 +55,8 @@ public class ShapePresetCommands {
                      @Arg(desc = "The shape it is based on")
                          NamedShape shape,
                      @Arg(desc = "Settings: numbers in order, or name=value", def = "", variable = true)
-                         List<String> settings) {
+                         List<HintedArguments.SettingWord> settingWords) {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         try {
             PresetShape preset = ShapeLibraryHolder.get().savePreset(name, shape.getName(), settings);
             actor.printInfo(TextComponent.of("Saved preset " + preset.getName() + " (" + preset.getDescription()

@@ -24,6 +24,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.CrosshairPlacement;
@@ -166,9 +167,10 @@ public class NatureCommands {
                         List<Double> size,
                     @Arg(desc = "Settings: roughness (0-1), seed; numbers in order or name=value",
                         def = "", variable = true)
-                        List<String> settings,
+                        List<HintedArguments.SettingWord> settingWords,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
         Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), RockGenerator.PARAMETERS, null, null);
         if (request == null) {
@@ -196,9 +198,10 @@ public class NatureCommands {
                             List<Double> size,
                         @Arg(desc = "Settings: count, seed; numbers in order or name=value",
                             def = "", variable = true)
-                            List<String> settings,
+                            List<HintedArguments.SettingWord> settingWords,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
         Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), CrystalGenerator.PARAMETERS, null, null);
         if (request == null) {
@@ -228,11 +231,12 @@ public class NatureCommands {
                              @Radii(3)
                                  List<Double> size,
                              @Arg(desc = "Settings: type (round, flat, bell), seed", def = "", variable = true)
-                                 List<String> settings,
+                                 List<HintedArguments.SettingWord> settingWords,
                              @ArgFlag(name = 'u', desc = "The pattern for the underside of the cap")
                                  String undersideInput,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         String undersideText;
         List<String> remaining;
         try {
@@ -279,9 +283,10 @@ public class NatureCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Settings: count, seed; numbers in order or name=value", def = "", variable = true)
-                         List<String> settings,
+                         List<HintedArguments.SettingWord> settingWords,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
         Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), RootGenerator.PARAMETERS, null, null);
         if (request == null) {
@@ -308,9 +313,10 @@ public class NatureCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Settings: type (branching, brain, fan, tubes), seed", def = "", variable = true)
-                         List<String> settings,
+                         List<HintedArguments.SettingWord> settingWords,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         atCrosshair |= CrosshairPlacement.hasFlag(settings, 'c');
         Request request = request(actor, size, CrosshairPlacement.withoutFlag(settings, 'c'), CoralGenerator.PARAMETERS, "type", CoralGenerator.TYPES);
         if (request == null) {

@@ -22,9 +22,6 @@ package com.sk89q.worldedit.command.argument;
 import com.sk89q.worldedit.command.util.StyleLibraryHolder;
 import com.sk89q.worldedit.function.generator.parts.BuildingPart;
 import com.sk89q.worldedit.function.generator.parts.BuildingParts;
-import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
-import com.sk89q.worldedit.function.generator.skyscraper.Skyscraper;
-import com.sk89q.worldedit.function.generator.style.StyleRole;
 import com.sk89q.worldedit.util.formatting.text.Component;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import org.enginehub.piston.CommandManager;
@@ -35,11 +32,8 @@ import org.enginehub.piston.inject.InjectedValueAccess;
 import org.enginehub.piston.inject.Key;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -68,19 +62,12 @@ public final class HintedArguments {
     }
 
     /**
-     * A {@code //build} setting such as {@code radius=5}.
+     * A setting such as {@code radius=5}, {@code crown=spire} or {@code -c}. The suggestions depend on
+     * the command and on what was typed before it (the shape, part or warp chosen).
      *
      * @param value the word typed
      */
-    public record PartSetting(String value) {
-    }
-
-    /**
-     * A {@code //skyscraper} setting such as {@code crown=spire} or {@code window=glass}.
-     *
-     * @param value the word typed
-     */
-    public record SkyscraperSetting(String value) {
+    public record SettingWord(String value) {
     }
 
     private HintedArguments() {
@@ -96,10 +83,7 @@ public final class HintedArguments {
             HintedArguments::partNames));
         commandManager.registerConverter(Key.of(StyleName.class), new Hinted<>(StyleName::new, "a building style",
             () -> StyleLibraryHolder.get().getAllNames()));
-        commandManager.registerConverter(Key.of(PartSetting.class), new Hinted<>(PartSetting::new, "a setting",
-            HintedArguments::partSettings));
-        commandManager.registerConverter(Key.of(SkyscraperSetting.class), new Hinted<>(SkyscraperSetting::new,
-            "a setting", HintedArguments::skyscraperSettings));
+        commandManager.registerConverter(Key.of(SettingWord.class), new SettingConverter());
     }
 
     /**
@@ -120,31 +104,6 @@ public final class HintedArguments {
             names.add(part.name());
         }
         return names;
-    }
-
-    static List<String> partSettings() {
-        Set<String> names = new LinkedHashSet<>();
-        for (BuildingPart part : BuildingParts.all()) {
-            for (ShapeParameter parameter : part.parameters()) {
-                names.add(parameter.name() + "=");
-            }
-        }
-        names.addAll(List.of("-w", "-s", "-c"));
-        return new ArrayList<>(names);
-    }
-
-    static List<String> skyscraperSettings() {
-        List<String> words = new ArrayList<>();
-        for (ShapeParameter parameter : Skyscraper.PARAMETERS) {
-            switch (parameter.name()) {
-                case "shape" -> Skyscraper.SHAPE_NAMES.forEach(n -> words.add("shape=" + n));
-                case "crown" -> Skyscraper.CROWN_NAMES.forEach(n -> words.add("crown=" + n));
-                default -> words.add(parameter.name() + "=");
-            }
-        }
-        Arrays.stream(StyleRole.values()).forEach(role -> words.add(role.id() + "="));
-        words.add("-c");
-        return words;
     }
 
     /**
@@ -175,6 +134,28 @@ public final class HintedArguments {
         @Override
         public ConversionResult<T> convert(String argument, InjectedValueAccess context) {
             return SuccessfulConversion.fromSingle(wrap.apply(argument));
+        }
+    }
+
+    /**
+     * Accepts any word; suggests the settings of the command being typed.
+     */
+    private static final class SettingConverter implements ArgumentConverter<SettingWord> {
+
+        @Override
+        public Component describeAcceptableArguments() {
+            return TextComponent.of("a setting (a number, name=value or a flag)");
+        }
+
+        @Override
+        public List<String> getSuggestions(String input, InjectedValueAccess context) {
+            String line = context.injectedValue(Key.of(Arguments.class)).map(Arguments::get).orElse("");
+            return limitByPrefix(SettingHints.suggest(line, input).stream(), input.toLowerCase(Locale.ROOT));
+        }
+
+        @Override
+        public ConversionResult<SettingWord> convert(String argument, InjectedValueAccess context) {
+            return SuccessfulConversion.fromSingle(new SettingWord(argument));
         }
     }
 }

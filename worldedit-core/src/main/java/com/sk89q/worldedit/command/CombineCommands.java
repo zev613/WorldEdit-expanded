@@ -23,6 +23,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.command.argument.HintedArguments;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.CrosshairPlacement;
@@ -101,7 +102,7 @@ public class CombineCommands {
                     @Radii(3)
                         List<Double> size,
                     @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                        List<String> settings,
+                        List<HintedArguments.SettingWord> settingWords,
                     @ArgFlag(name = 'o', desc = "Offset from the first shape's middle, as x,y,z", def = "")
                         String offset,
                     @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
@@ -110,6 +111,7 @@ public class CombineCommands {
                         double tilt,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         addStep(actor, session, Operation.ADD, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
@@ -127,7 +129,7 @@ public class CombineCommands {
                     @Radii(3)
                         List<Double> size,
                     @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                        List<String> settings,
+                        List<HintedArguments.SettingWord> settingWords,
                     @ArgFlag(name = 'o', desc = "Offset from the first shape's middle, as x,y,z", def = "")
                         String offset,
                     @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
@@ -136,6 +138,7 @@ public class CombineCommands {
                         double tilt,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         addStep(actor, session, Operation.CUT, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
@@ -153,7 +156,7 @@ public class CombineCommands {
                      @Radii(3)
                          List<Double> size,
                      @Arg(desc = "Shape settings: numbers in order, or name=value", def = "", variable = true)
-                         List<String> settings,
+                         List<HintedArguments.SettingWord> settingWords,
                      @ArgFlag(name = 'o', desc = "Offset from the first shape's middle, as x,y,z", def = "")
                          String offset,
                      @ArgFlag(name = 'r', desc = "Turn the shape clockwise by this many degrees", def = "0")
@@ -162,6 +165,7 @@ public class CombineCommands {
                          double tilt,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
+        List<String> settings = HintedArguments.strings(settingWords, HintedArguments.SettingWord::value);
         addStep(actor, session, Operation.KEEP, shape, size, settings, offset, turn, tilt, atCrosshair);
     }
 
