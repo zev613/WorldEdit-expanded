@@ -21,6 +21,7 @@ package com.sk89q.worldedit.function.clipboard;
 
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.function.diff.WorldDiff;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.world.block.BlockState;
@@ -59,11 +60,10 @@ public final class ClipboardScaler {
         BlockArrayClipboard result = new BlockArrayClipboard(new CuboidRegion(
             origin.add(dMin[0], dMin[1], dMin[2]), origin.add(dMax[0], dMax[1], dMax[2])));
         result.setOrigin(origin);
-
         Map<BlockState, Integer> ids = new HashMap<>();
         ScaleResampler.Source source = (x, y, z) -> {
             BlockState state = clipboard.getBlock(origin.add(x, y, z));
-            if (state.getBlockType().getMaterial().isAir()) {
+            if (WorldDiff.isAir(state)) {
                 return 0;
             }
             return ids.computeIfAbsent(state, _ -> ids.size() + 1);

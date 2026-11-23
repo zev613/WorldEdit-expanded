@@ -29,7 +29,7 @@ import com.sk89q.worldedit.math.transform.AffineTransform;
  * clockwise (seen from above) around the paste position, so the copies are evenly spaced and
  * each faces outward like a spoke. Copy 0 is exactly where {@code //paste} would put it. With a
  * radius, every copy is first slid straight outward (or inward) so the centre of the clipboard is
- * that many blocks from the paste position.</p>
+ * that many blocks (rounded to whole blocks) from the paste position.</p>
  */
 public final class RadialLayout {
 
@@ -73,7 +73,8 @@ public final class RadialLayout {
                 dirX = cx / length;
                 dirZ = cz / length;
             }
-            this.shift = Vector3.at(dirX * radius - cx, 0, dirZ * radius - cz);
+            // whole blocks, so copy 0 stays on the block grid
+            this.shift = Vector3.at(Math.rint(dirX * radius - cx), 0, Math.rint(dirZ * radius - cz));
         }
     }
 

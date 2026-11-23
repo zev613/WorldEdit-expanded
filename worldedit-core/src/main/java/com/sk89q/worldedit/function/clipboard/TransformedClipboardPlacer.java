@@ -24,6 +24,7 @@ import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.transform.BlockTransformExtent;
+import com.sk89q.worldedit.function.diff.WorldDiff;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector3;
 import com.sk89q.worldedit.math.transform.Transform;
@@ -136,7 +137,7 @@ public final class TransformedClipboardPlacer {
                     }
                     BaseBlock block = clipboard.getFullBlock(source);
                     if (block.getBlockType() == BlockTypes.STRUCTURE_VOID
-                        || (ignoreAir && block.getBlockType().getMaterial().isAir())) {
+                        || (ignoreAir && WorldDiff.isAir(block.toImmutableState()))) {
                         continue;
                     }
                     if (target.setBlock(to.add(offset), BlockTransformExtent.transform(block, transform))) {
@@ -161,7 +162,7 @@ public final class TransformedClipboardPlacer {
         for (int y = lo.y(); y <= hi.y(); y++) {
             for (int x = lo.x(); x <= hi.x(); x++) {
                 for (int z = lo.z(); z <= hi.z(); z++) {
-                    if (!clipboard.getBlock(BlockVector3.at(x, y, z)).getBlockType().getMaterial().isAir()) {
+                    if (!WorldDiff.isAir(clipboard.getBlock(BlockVector3.at(x, y, z)))) {
                         return y - clipboard.getOrigin().y();
                     }
                 }

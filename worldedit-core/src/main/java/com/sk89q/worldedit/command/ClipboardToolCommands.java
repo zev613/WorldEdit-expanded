@@ -34,6 +34,7 @@ import com.sk89q.worldedit.function.clipboard.PathSampler;
 import com.sk89q.worldedit.function.clipboard.RadialLayout;
 import com.sk89q.worldedit.function.clipboard.ScaleResampler;
 import com.sk89q.worldedit.function.clipboard.TransformedClipboardPlacer;
+import com.sk89q.worldedit.function.diff.WorldDiff;
 import com.sk89q.worldedit.internal.annotation.Selection;
 import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -251,8 +252,12 @@ public class ClipboardToolCommands {
     }
 
     private static boolean isGround(BlockState state) {
+        if (WorldDiff.isAir(state)) {
+            return false;
+        }
         BlockMaterial material = state.getBlockType().getMaterial();
-        return !material.isAir() && (material.isSolid() || material.isLiquid());
+        // grass and other plants that get replaced when building are not ground
+        return material.isSolid() || material.isLiquid() || !material.isReplacedDuringPlacement();
     }
 
     /**

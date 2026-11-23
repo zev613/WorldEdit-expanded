@@ -166,6 +166,16 @@ class ClipboardToolMathTest {
     }
 
     @Test
+    void radialRadiusShiftIsWholeBlocks() {
+        RadialLayout layout = new RadialLayout(4, Vector3.at(0, 0, -3.5), 15.0, 0);
+        assertNear(Vector3.at(0, 0, -12), layout.getShift());
+        for (int i = 0; i < 4; i++) {
+            Vector3 moved = layout.transform(i).apply(Vector3.at(0, 0, -3.5));
+            assertEquals(15.5, Math.hypot(moved.x(), moved.z()), 1e-6);
+        }
+    }
+
+    @Test
     void radialCentredClipboardUsesFacing() {
         // yaw 0 is south (+z)
         RadialLayout layout = new RadialLayout(2, Vector3.ZERO, 7.0, 0);

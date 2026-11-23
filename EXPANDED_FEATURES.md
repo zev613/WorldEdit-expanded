@@ -322,6 +322,39 @@ pixels are skipped. It stands upright facing you with its bottom-left corner at 
 Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
 with commas. Example: `//image logo.png 64 -p wool,concrete`.
 
+## Scaling, rings and paths for the clipboard
+
+Plain numbers only, and every paste is a single `//undo`. Any `//rotate` or `//flip` on the clipboard is applied first.
+
+**`//scale <factor | x,y,z> [-a fraction] [-k name]`** (alias `//resize`) resizes the clipboard by any factor:
+`//scale 2.5`, `//scale 0.5`, or `//scale 1,2,1` to make it only taller. It scales around the clipboard origin (where
+you stood when copying), so `//paste` lands in the same place, just bigger or smaller. Every new block looks up the
+block it came from, so enlarging leaves no holes. When shrinking, each new block covers several old ones; it becomes
+solid when at least a quarter of them are solid (`-a 0.5` asks for half, `-a 0.1` keeps even more detail) and takes
+the most common solid block, so 1-block walls and posts survive halving. Stairs, logs and other blocks keep their
+state; chest contents and sign text are kept on one copy of each block only (no duplicated items). Entities and
+biomes are not scaled. The result may be at most 64M blocks. With `-k name` the named clipboard is scaled and
+updated (and becomes the current clipboard).
+
+**`//radial <count> [radius] [-a] [-k name]`** (alias `//ring`) pastes the clipboard `count` times evenly around your
+placement position, like spokes: copy number k is the normal `//paste` turned k x 360/count degrees clockwise (seen
+from above) around you, so the first copy is exactly where `//paste` would put it and every copy faces outward the
+same way. Without a radius each copy keeps the distance it has from you when pasting; with a radius the centre of
+each copy is moved straight out (or in) to that many blocks from you. Example: copy a bench standing at the edge of a
+plaza, then `//radial 6`. Angles that are not multiples of 90 degrees are filled without holes, but stairs and other
+directional blocks turn to the nearest direction they support (e.g. 45 degrees snaps to a side), and 1-block-thin
+diagonal lines get slightly shorter. `-a` skips air.
+
+**`//stackpath <spacing> [-a] [-r] [-g] [-k name]`** (alias `//pathstack`) repeats the clipboard along a smooth path
+through your selection points, one copy every `spacing` blocks of path length, starting at the first point. The path
+goes through the points of a `//sel poly` (at its lowest y) or `//sel convex` selection in the order you clicked them
+(points inside the convex hull may be reordered), or from pos1 to pos2 for a cuboid, smoothed like `//curve`. Each
+copy's origin goes on the path, as if you had pasted there. `-r` turns each copy to follow the path: the first copy is
+as copied and later copies turn as much as the path has turned. `-g` moves each copy up or down so its lowest solid
+layer sits on the highest ground under it (searching down from the top of the copy; grass and air are not ground).
+`-a` skips air. Example: copy a lamp post, `//sel convex`, click points along a road, `//stackpath 8 -g -a`. At most
+10,000 copies.
+
 ## New commands
 
 | Command | What it does |
@@ -363,5 +396,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
 `worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
