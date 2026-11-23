@@ -615,6 +615,29 @@ ground under it, like `//stackpath -g`. `-y <rise>` raises each row by that many
 after a restart are listed as "edit" with "? blocks" because only the blocks were saved; `[info]` still shows where
 they are.
 
+## Ageing builds: ruins and overgrowth
+
+Both work on the selection, take `amount` (0-1, default 0.5) and `seed`, in order or as `name=value`, and are one
+undoable edit. Without a seed a random one is used and shown in the message, so the same result can be rebuilt.
+Amount 0 changes nothing.
+
+| Command | What it does |
+|---|---|
+| `//ruin [amount] [seed] [-r] [-g]` (`//decay`) | Walls and roofs crumble in whole chunks (smooth noise), more towards the top and outer edges of the build, floors and roofs over open space more still; the foundations mostly stay. Anything no longer connected to the ground falls. What is left weathers: stone bricks crack and get mossy (stairs and slabs keep their facing), cobblestone gets mossy, planks rot away in patches, logs get stripped, glass mostly breaks, doors, torches, lanterns, beds, carpets and the like go, copper oxidises. Fallen blocks pile up at the foot of the walls as cobblestone, gravel or the block itself, smoothed with slabs (`-r`: no rubble). `-g` adds grass, dirt and moss patches on flat surfaces. |
+| `//overgrow [amount] [seed] [-n] [-l]` (`//ivy`) | Vines hang down walls from where they start (more on north faces and in the shade under overhangs), leaf bushes gather at the foot of walls and in corners, moss carpet covers tops, grass, ferns and flowers grow on soil (`-n`: no flowers), hanging roots and cave vines hang under overhangs, glow lichen grows in dark corners (`-l`: none). Growth comes in clumps. Plants only fill air; above amount 0.6 some exposed stone and cobblestone tops become moss blocks. |
+
+The ground is the natural blocks (dirt, grass, stone, sand...) from the bottom of the selection up; everything above
+is the build, so include the ground under the build in the selection. Natural blocks are never knocked out.
+
+```
+//ruin
+//ruin 0.8 seed=12 -g
+//overgrow 0.7 -n
+```
+
+The logic is in plain classes (`function/generator/age`: `RuinGenerator`, `OvergrowGenerator`, `AgeMaterials`)
+working on a small block interface (`AgeWorld`).
+
 ## New commands
 
 | Command | What it does |
@@ -655,5 +678,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.clipboard.grid` (`//grid`; `//paste -c` uses `worldedit.clipboard.paste`), `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit` (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit` (`//mask save|delete`), `worldedit.history.list` (`//history`; undoing/redoing from it uses the normal undo/redo permissions), `worldedit.history.tp` (`[tp]` in `//history`). Using `#name` needs no permission. The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.clipboard.grid` (`//grid`; `//paste -c` uses `worldedit.clipboard.paste`), `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit` (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit` (`//mask save|delete`), `worldedit.history.list` (`//history`; undoing/redoing from it uses the normal undo/redo permissions), `worldedit.history.tp` (`[tp]` in `//history`). Using `#name` needs no permission, `worldedit.region.ruin` (`//ruin`), `worldedit.region.overgrow` (`//overgrow`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.

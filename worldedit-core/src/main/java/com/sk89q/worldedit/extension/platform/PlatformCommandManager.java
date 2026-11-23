@@ -28,6 +28,8 @@ import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MissingWorldException;
 import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.command.AgeCommands;
+import com.sk89q.worldedit.command.AgeCommandsRegistration;
 import com.sk89q.worldedit.command.ApplyBrushCommands;
 import com.sk89q.worldedit.command.BiomeCommands;
 import com.sk89q.worldedit.command.BiomeCommandsRegistration;
@@ -421,6 +423,11 @@ public final class PlatformCommandManager {
             commandManager,
             BuildToolCommandsRegistration.builder(),
             new BuildToolCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            AgeCommandsRegistration.builder(),
+            new AgeCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
