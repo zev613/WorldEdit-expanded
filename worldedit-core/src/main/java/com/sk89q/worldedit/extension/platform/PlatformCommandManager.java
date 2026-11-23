@@ -41,6 +41,10 @@ import com.sk89q.worldedit.command.ChunkCommands;
 import com.sk89q.worldedit.command.ChunkCommandsRegistration;
 import com.sk89q.worldedit.command.ClipboardCommands;
 import com.sk89q.worldedit.command.ClipboardCommandsRegistration;
+import com.sk89q.worldedit.command.ClipboardToolCommands;
+import com.sk89q.worldedit.command.ClipboardToolCommandsRegistration;
+import com.sk89q.worldedit.command.CombineCommands;
+import com.sk89q.worldedit.command.CombineCommandsRegistration;
 import com.sk89q.worldedit.command.DiffCommands;
 import com.sk89q.worldedit.command.DiffCommandsRegistration;
 import com.sk89q.worldedit.command.EditJobCommands;
@@ -55,6 +59,10 @@ import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
 import com.sk89q.worldedit.command.LandscapeCommandsRegistration;
+import com.sk89q.worldedit.command.ModelCommands;
+import com.sk89q.worldedit.command.ModelCommandsRegistration;
+import com.sk89q.worldedit.command.NatureCommands;
+import com.sk89q.worldedit.command.NatureCommandsRegistration;
 import com.sk89q.worldedit.command.NavigationCommands;
 import com.sk89q.worldedit.command.NavigationCommandsRegistration;
 import com.sk89q.worldedit.command.PaintBrushCommands;
@@ -72,10 +80,16 @@ import com.sk89q.worldedit.command.ShapeCommands;
 import com.sk89q.worldedit.command.ShapeCommandsRegistration;
 import com.sk89q.worldedit.command.ShapePresetCommands;
 import com.sk89q.worldedit.command.ShapePresetCommandsRegistration;
+import com.sk89q.worldedit.command.SkyscraperCommands;
+import com.sk89q.worldedit.command.SkyscraperCommandsRegistration;
+import com.sk89q.worldedit.command.SmartSelectionCommands;
+import com.sk89q.worldedit.command.SmartSelectionCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotCommands;
 import com.sk89q.worldedit.command.SnapshotCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotUtilCommands;
 import com.sk89q.worldedit.command.SnapshotUtilCommandsRegistration;
+import com.sk89q.worldedit.command.StyleCommands;
+import com.sk89q.worldedit.command.StyleCommandsRegistration;
 import com.sk89q.worldedit.command.SuperPickaxeCommands;
 import com.sk89q.worldedit.command.SuperPickaxeCommandsRegistration;
 import com.sk89q.worldedit.command.TerrainPaintCommands;
@@ -414,6 +428,11 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            ClipboardToolCommandsRegistration.builder(),
+            new ClipboardToolCommands()
+        );
+        this.registration.register(
+            commandManager,
             DiffCommandsRegistration.builder(),
             new DiffCommands()
         );
@@ -447,6 +466,18 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            ModelCommandsRegistration.builder(),
+            new ModelCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/combine",
+            ImmutableList.of("/compound"),
+            "Build compound shapes: add, cut and keep named shapes, then blend and build them",
+            CombineCommandsRegistration.builder(),
+            new CombineCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
             NavigationCommandsRegistration.builder(),
             new NavigationCommands(worldEdit)
         );
@@ -465,6 +496,11 @@ public final class PlatformCommandManager {
             ShapeCommandsRegistration.builder(),
             new ShapeCommands(worldEdit)
         );
+        this.registration.register(
+            commandManager,
+            SmartSelectionCommandsRegistration.builder(),
+            new SmartSelectionCommands(worldEdit)
+        );
         registerSubCommands(
             "/shapedef",
             ImmutableList.of("/shapepreset"),
@@ -476,6 +512,23 @@ public final class PlatformCommandManager {
             commandManager,
             WarpCommandsRegistration.builder(),
             new WarpCommands()
+        );
+        this.registration.register(
+            commandManager,
+            SkyscraperCommandsRegistration.builder(),
+            new SkyscraperCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/style",
+            ImmutableList.of("/buildingstyle"),
+            "List, show, save and delete building styles for //skyscraper",
+            StyleCommandsRegistration.builder(),
+            new StyleCommands()
+        );
+        this.registration.register(
+            commandManager,
+            NatureCommandsRegistration.builder(),
+            new NatureCommands(worldEdit)
         );
         this.registration.register(
             commandManager,

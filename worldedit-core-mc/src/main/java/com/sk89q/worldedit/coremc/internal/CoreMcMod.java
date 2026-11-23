@@ -251,6 +251,8 @@ public abstract class CoreMcMod {
         if (platform != null) {
             // Apply large edits a slice at a time
             WorldEdit.getInstance().getEditJobQueue().tick();
+            // Features that follow players over time, such as //polywalk
+            WorldEdit.getInstance().getTickListeners().tick();
         }
     }
 

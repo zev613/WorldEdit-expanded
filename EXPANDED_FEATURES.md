@@ -322,6 +322,232 @@ pixels are skipped. It stands upright facing you with its bottom-left corner at 
 Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
 with commas. Example: `//image logo.png 64 -p wool,concrete`.
 
+## Scaling, rings and paths for the clipboard
+
+Plain numbers only, and every paste is a single `//undo`. Any `//rotate` or `//flip` on the clipboard is applied first.
+
+**`//scale <factor | x,y,z> [-a fraction] [-k name]`** (alias `//resize`) resizes the clipboard by any factor:
+`//scale 2.5`, `//scale 0.5`, or `//scale 1,2,1` to make it only taller. It scales around the clipboard origin (where
+you stood when copying), so `//paste` lands in the same place, just bigger or smaller. Every new block looks up the
+block it came from, so enlarging leaves no holes. When shrinking, each new block covers several old ones; it becomes
+solid when at least a quarter of them are solid (`-a 0.5` asks for half, `-a 0.1` keeps even more detail) and takes
+the most common solid block, so 1-block walls and posts survive halving. Stairs, logs and other blocks keep their
+state; chest contents and sign text are kept on one copy of each block only (no duplicated items). Entities and
+biomes are not scaled. The result may be at most 64M blocks. With `-k name` the named clipboard is scaled and
+updated (and becomes the current clipboard).
+
+**`//radial <count> [radius] [-a] [-k name]`** (alias `//ring`) pastes the clipboard `count` times evenly around your
+placement position, like spokes: copy number k is the normal `//paste` turned k x 360/count degrees clockwise (seen
+from above) around you, so the first copy is exactly where `//paste` would put it and every copy faces outward the
+same way. Without a radius each copy keeps the distance it has from you when pasting; with a radius the centre of
+each copy is moved straight out (or in) to that many blocks from you. Example: copy a bench standing at the edge of a
+plaza, then `//radial 6`. Angles that are not multiples of 90 degrees are filled without holes, but stairs and other
+directional blocks turn to the nearest direction they support (e.g. 45 degrees snaps to a side), and 1-block-thin
+diagonal lines get slightly shorter. `-a` skips air.
+
+**`//stackpath <spacing> [-a] [-r] [-g] [-k name]`** (alias `//pathstack`) repeats the clipboard along a smooth path
+through your selection points, one copy every `spacing` blocks of path length, starting at the first point. The path
+goes through the points of a `//sel poly` (at its lowest y) or `//sel convex` selection in the order you clicked them
+(points inside the convex hull may be reordered), or from pos1 to pos2 for a cuboid, smoothed like `//curve`. Each
+copy's origin goes on the path, as if you had pasted there. `-r` turns each copy to follow the path: the first copy is
+as copied and later copies turn as much as the path has turned. `-g` moves each copy up or down so its lowest solid
+layer sits on the highest ground under it (searching down from the top of the copy; grass and air are not ground).
+`-a` skips air. Example: copy a lamp post, `//sel convex`, click points along a road, `//stackpath 8 -g -a`. At most
+10,000 copies.
+
+## Smarter selections (magic wand, whole builds, walking a polygon)
+
+No more clicking dozens of `//sel poly` points round an irregular build.
+
+**`//selconnected <mask> [maxDistance] [-d] [-p]`** (aliases `//magicwand`, `//selc`) works like a paint program's
+magic wand. It starts from the block under your feet if that matches the mask, otherwise from the block you look at
+(up to 512 blocks away; the message says which was used). From the console it starts at `//pos1`. It then spreads
+through touching blocks that match the mask (any mask: `gravel`, `stone_bricks,stone_brick_stairs`, `#existing`...).
+Blocks are connected through their faces; `-d` also follows blocks that only touch at an edge or corner (zig-zag
+paths, diagonal stairs). The selection is **exactly those blocks**, so `//set`, `//replace`, `//copy`, `//count`,
+`//walls` and so on affect only them. It reports the block count and the size of the bounding box.
+
+```
+//selc gravel                       the gravel path you are standing on
+//selc stone_bricks,stone_brick_stairs -d     a wall with its stair trim
+//selc water 64                     the pond you look at, at most 64 blocks out
+```
+
+**`//selbuild [maxDistance] [-g] [-p]`** selects the whole build you are looking at (console: at `//pos1`), with all
+its decorations: it spreads through every non-air block touching another (also at edges and corners), but not into
+natural terrain. `-g` adds the one layer of ground touching the build (the blocks under and beside it), which is handy
+before `//copy` or `//move`. Natural terrain is a fixed list: grass block, dirt, coarse dirt, rooted dirt, podzol,
+mycelium, mud, stone, deepslate, andesite, diorite, granite, tuff, calcite, bedrock, gravel, sand, red sand, clay
+(and their suspicious variants), snow blocks and powder snow, water, lava, bubble columns, short/tall grass, ferns,
+dead bushes, dry grass, seagrass, kelp, flowers (including petals, wildflowers, eyeblossoms, leaf litter), every
+`*_ore`, netherrack, soul sand/soil, nylium, end stone and ancient debris. Deliberately **not** natural: leaves and
+logs (hedges, timber framing and garden trees would be cut off; a tree touching the build is therefore included),
+sandstone and cobblestone (common building blocks), snow layers (they lie on roofs and paths), ice, moss and basalt.
+A build that touches a cliff of one of those materials will spread into it: limit the distance or trim afterwards.
+
+**`-p`** (on both commands) turns the result into a normal `//sel poly` selection for tools that need one: the outline
+follows the outer edge of the blocks' footprint seen from above (concave where the footprint is, e.g. L- or U-shaped
+houses; courtyards are filled), from the lowest to the highest selected block. If the outline has more points than
+polygons may have on the server (`max-polygon-points`, 20 by default), it is simplified (Douglas-Peucker) so that it
+still goes around every block where possible; otherwise the message says how many edge columns were left outside.
+
+Both commands stop at `maxDistance` blocks from the start along any axis, and at a total number of blocks. Defaults and
+hard caps come from the config: `max-connected-selection-distance` (256) and `max-connected-selection-blocks`
+(2,000,000) (in `worldedit.yml` under `limits:`, or `worldedit.properties`). Blocks already visited are kept in a
+compact bit set (16x16x16 sections), so even large selections need little memory. After a `//selconnected` or
+`//selbuild`, your next wand click (or `//pos1`/`//pos2`) starts a fresh selection of the type you were using before,
+so if you were in `//sel poly` mode you are straight back to clicking polygon points.
+
+**`//polywalk`** makes a `//sel poly` by walking around a build:
+
+| Command | What it does |
+|---|---|
+| `//polywalk` or `//polywalk start [spacing]` | Start recording. Every time you have walked `spacing` blocks (default 4) horizontally from the last point, a point is added where you stand, and your polygon selection grows as you go (WorldEdit CUI and `//size` show it). |
+| `//polywalk point [x,y,z]` | Add a point here now (for corners; these are never simplified away), or at the given position. |
+| `//polywalk undo` | Remove the last point. |
+| `//polywalk stop [-y min,max]` | Finish: drop points that are nearly on a straight line, close the loop, and select from 1 block below the lowest place you walked to the highest non-air block inside the outline (or the `-y` range). Prints the point count and size. |
+| `//polywalk cancel` | Throw the recording away. |
+
+Recording stops by itself (nothing is selected) when you log out or change world. Point sampling runs from the server
+tick (a general per-tick hook, `WorldEdit#getTickListeners()`, called next to the edit job queue); it is only registered
+while someone is walking. The command line has no walking player, so there only `//polywalk point x,y,z` adds points.
+
+## Modelling from drawings and combining shapes
+
+Draw a flat outline in blocks (any blocks, several materials are fine) and turn it into 3D, the way 3D modelling
+tools do. A "drawing" is the non-air blocks of your selection, standing upright like a wall (flat along x or z) and
+at most 2 blocks thick. Every block of the result looks up where it came from in the drawing, so there are no holes
+and each block keeps its material (a vase drawn with a gold rim stays gold-rimmed).
+
+| Command | What it does |
+|---|---|
+| `//lathe [degrees] [-c] [-r]` (alias `//spin`) | Spins the drawing around a vertical axis: vases, domes, towers, fountains. |
+| `//extrude <length> [twist] [taper] [-d direction]` (alias `//pull`) | Pulls the drawing straight out, optionally twisting and tapering it. |
+| `//sweep <profile> [pattern] [width] [settings] [-h] [-k]` | Drags a cross-section along a smooth path through the selection's points. |
+| `//combine add\|cut\|keep\|smooth\|list\|undo\|clear\|build\|select` | Builds compound shapes from named shapes. |
+
+**`//lathe`** (the name `//revolve` was already taken by WorldEdit's "paste rotated copies" command). Draw half of
+the outline (or all of it), select it, **stand where the middle of the model should be** and run `//lathe`. The axis is
+the vertical line through where you stand (your placement position), in the plane of the drawing; it does not matter
+how far in front of or behind the drawing you stand. With `-c` the axis is instead the edge of the drawing nearest to
+you, so you can stand anywhere on that side. Parts of the drawing on the far side of the axis are spun too, so a whole
+drawn vase works as well as half of one. An angle such as `//lathe 180` spins only part of the way, clockwise seen
+from above. The drawing stays where it is unless you add `-r`. Example: draw the right half of a vase in the plane
+z = 100 with its centre line at x = 50, stand at x = 50, `//lathe`.
+
+**`//extrude`** pulls the drawing along the axis it is thin in: away from you for an upright drawing, and upwards for a
+drawing lying on the ground (a floor plan). `-d north|south|east|west|up|down|me` picks the direction (it must be the
+axis the drawing is thin in). `twist` is how many degrees the far end is turned, `taper` how big it is (0.3 = a point,
+2 = twice as big). Example: `//extrude 20 90 0.3` turns a drawn star into a twisted spire.
+
+**`//sweep`** follows a path through the selection: pos1 to pos2 for a cuboid, or the points in order for
+`//sel poly` (at the polygon's lowest y) or `//sel convex`, smoothed into a curve. The cross-section stays upright
+(level left-to-right) along the whole path. `width` is in blocks (default 5); the pattern defaults to stone.
+Profiles: `circle` (tube), `square` (beam; `height=`), `arch` (tunnel or aqueduct standing on the path, open at the
+bottom; `height=`, `thickness=`), `ring` (pipe; `thickness=`), `rail` (two rails on sleepers; `spacing=` between
+sleepers). `circle`, `square` and `ring` are centred on the path; `arch` and `rail` stand on it.
+`-h` makes circles and squares hollow with open ends. `-k` (or the profile name `clipboard`) uses the flat drawing in
+your clipboard as the cross-section, keeping its blocks; the path runs through the spot you stood on when you copied
+it, and the drawing is used as you see it looking along the path (use `//flip` on the clipboard if it comes out
+mirrored). Examples: `//sweep arch stone_bricks 9 height=8`, `//sweep ring glass 5 thickness=1`,
+`//sweep rail oak_planks 3 spacing=2`, `//sweep clipboard`.
+
+**`//combine`** builds a compound shape from the shapes of `//shape`, one step at a time:
+
+* `//combine add <shape> <size|x,y,z> [settings] [-o x,y,z] [-r deg] [-t deg]` adds a shape (union). The first shape
+  is centred where you stand; `-o` puts later shapes that many blocks from the first shape's middle (x east, y up,
+  z south). `-r` turns and `-t` tilts it.
+* `//combine cut ...` carves a shape away (subtract) and `//combine keep ...` keeps only the overlap (intersect).
+  Steps apply in order.
+* `//combine smooth <blocks>` blends every join into a rounded fillet about that wide (0 = sharp). It works on
+  distance fields of the shapes, so it also rounds the edges of cuts.
+* `//combine list`, `//combine undo` (remove the last step), `//combine clear`.
+* `//combine build <pattern> [-h] [-m mask]` builds it where you stood when you added the first shape;
+  `//combine select` selects it instead, so `//set`, `//replace`, `//count` work inside it.
+
+Example: `//combine add superellipsoid 8 power=2`, `//combine add tower 3,10,3 -o 0,10,0`, `//combine smooth 3`,
+`//combine build stone`. Each player has one compound shape; it is kept in memory only and is lost when the server
+restarts.
+
+## Skyscrapers and building styles
+
+**`//skyscraper <style> <stories> [settings] [role=block ...]`** builds a skyscraper with its entrance facing you
+(north for the console): the middle of the front wall is 3 blocks in front of your placement position and the tower
+goes away from you. Settings are plain numbers, in order or as `name=value`:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `width`, `depth` | 15, 15 | Footprint (5-256). `width` runs across the entrance side. |
+| `story` | 4 | Blocks per story (3-12); the lobby is one block taller. |
+| `setbacks` | style | Times the tower steps inward going up (0-6), art-deco style. |
+| `taper` | 0 | Blocks each side narrows evenly from bottom to top. |
+| `shape` | style | `box`, `rounded` (rounded corners), `round` (cylindrical), `l` (L-shaped), or 0-3. |
+| `crown` | style | `flat` (parapet and rooftop plant room / water tower), `spire` (spire and antenna), `stepped` (three windowed tiers), `pyramid`, or 0-3. |
+| `seed` | random | Rooftop details. |
+| `interior` | 1 | 1 = floors with a central stairwell core (a stair spiralling round a 3x3 shaft, doorways on every floor), 0 = floor slabs only. Rooms are cleared to air either way. |
+
+Every story gets a floor slab with ceiling lights; the lobby has a glass front with pillars, a 3-wide door with a
+frame and a lit canopy. Each style family has its own look:
+
+| Style | Look (default shape / crown / setbacks) |
+|---|---|
+| `modern` | White ribbon windows (box / flat / 0) |
+| `art_deco` | Piers between vertical window strips, dark spandrels, gold details (box / stepped / 3) |
+| `futuristic` | All-round glass with glowing accent bands (round / spire / 0) |
+| `gothic` | Buttresses and pointed lancet windows, trim bands (box / spire / 1) |
+| `brutalist` | Heavy fins and concrete bands with small windows (box / flat / 1) |
+| `glass` | Curtain wall with thin mullions (rounded / flat / 0) |
+| `brick` | Classic NYC punched windows and a rooftop water tower (box / flat / 0) |
+| `sandstone` | Arched windows between columns (box / pyramid / 1) |
+
+A style is a set of blocks for the roles `wall`, `window` (glass), `trim`, `pillar`, `floor`, `roof`, `accent` and
+`light`. Change any of them for one building with `role=block` (any pattern works, e.g. `wall=80%bricks,20%granite`),
+or save your own style:
+
+* `//style list` — built-in and saved styles (click one for its blocks)
+* `//style info <style>` — the block for every role
+* `//style save <name> <base style> [role=block ...]` — saved in `building-styles.txt` in WorldEdit's folder
+  (one line per style, `name = base role=block ...`); a saved style keeps its base style's look
+* `//style delete <name>`
+
+```
+//skyscraper art_deco 40 width=25 depth=25
+//skyscraper glass 60 width=31 depth=21 crown=spire taper=4
+//skyscraper brick 12 shape=l window=cyan_stained_glass
+//style save harbour art_deco window=cyan_stained_glass accent=copper_block
+//skyscraper harbour 30 crown=pyramid
+```
+
+The style system is a plain reusable class (`function/generator/style`: `BuildingStyle`, `StyleRole`, `StyleLibrary`)
+for other generators to use.
+
+## Nature: rocks, crystals, giant mushrooms, roots and coral
+
+Each takes a block pattern, a size and plain-number settings (in order or `name=value`). The size is a radius, or
+`x,y,z` radii like `//shape`: things stand on the placement position, centred on it, at most `2x+1` by `2z+1`
+blocks across and `2y` tall (roots hang down `2y` from it). `seed` makes the result repeatable; without it a random
+seed is used and shown in the message, so you can build the same thing again. Nothing is left floating: only the
+largest connected piece is kept. Types can be given by name.
+
+| Command | Settings (defaults) | Notes |
+|---|---|---|
+| `//rock <pattern> <size>` (`//boulder`) | `roughness 0.5` (0 smooth - 1 jagged), `seed` | A few overlapping lumps deformed by noise, faint weathered ledges, flat base. Mixed patterns (`stone,andesite,cobblestone`) look natural. |
+| `//crystals <pattern> <size>` (`//geode`) | `count 7` (1-40), `seed` | Pointed hexagonal prisms of different lengths and tilts growing from a small base; the tallest reaches about `2y`. |
+| `//giantmushroom <stem> <cap> <size> [-u underside]` | `type round` (`round`, `flat`, `bell`), `seed` | Slightly curved stem; round = red-mushroom dome (hollow), flat = wide brown disc, bell = tall cone. `-u` fills the gills under the cap. Size = cap radius; height `2y`. |
+| `//roots <pattern> <size>` | `count 6` (1-24), `seed` | Twisting, tapering roots that branch and spread out and down from the placement position (under trees or floating islands). |
+| `//coral <pattern> <size>` (`//reef`) | `type branching` (`branching`, `brain`, `fan`, `tubes`), `seed` | Branching: tree-like; brain: a wrinkled ball with winding grooves; fan: a flat, one-block lattice; tubes: a cluster of hollow pipes. |
+
+```
+//rock stone,andesite,cobblestone 6 roughness=0.8
+//rock mossy_cobblestone,stone 10,4,7 seed=12
+//crystals amethyst_block,purple_stained_glass 6 count=9
+//giantmushroom mushroom_stem red_mushroom_block 8 round
+//giantmushroom mushroom_stem brown_mushroom_block 12,8,12 flat -u mushroom_stem
+//roots oak_wood,rooted_dirt 8 count=7
+//coral brain_coral_block 4 brain
+//coral tube_coral_block,horn_coral_block 6 tubes seed=3
+```
+
 ## New commands
 
 | Command | What it does |
@@ -362,6 +588,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
