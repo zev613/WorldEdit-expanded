@@ -70,6 +70,10 @@ import com.sk89q.worldedit.command.PreviewCommands;
 import com.sk89q.worldedit.command.PreviewCommandsRegistration;
 import com.sk89q.worldedit.command.RegionCommands;
 import com.sk89q.worldedit.command.RegionCommandsRegistration;
+import com.sk89q.worldedit.command.SavedMaskCommands;
+import com.sk89q.worldedit.command.SavedMaskCommandsRegistration;
+import com.sk89q.worldedit.command.SavedPatternCommands;
+import com.sk89q.worldedit.command.SavedPatternCommandsRegistration;
 import com.sk89q.worldedit.command.SchematicCommands;
 import com.sk89q.worldedit.command.SchematicCommandsRegistration;
 import com.sk89q.worldedit.command.ScriptingCommands;
@@ -517,6 +521,20 @@ public final class PlatformCommandManager {
             commandManager,
             SkyscraperCommandsRegistration.builder(),
             new SkyscraperCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/pattern",
+            ImmutableList.of("/patterns"),
+            "Save patterns under a name and use them as #name",
+            SavedPatternCommandsRegistration.builder(),
+            new SavedPatternCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/mask",
+            ImmutableList.of("/masks"),
+            "Save masks under a name and use them as #name",
+            SavedMaskCommandsRegistration.builder(),
+            new SavedMaskCommands(worldEdit)
         );
         registerSubCommands(
             "/style",

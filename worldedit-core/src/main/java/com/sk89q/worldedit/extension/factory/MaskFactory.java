@@ -38,6 +38,8 @@ import com.sk89q.worldedit.extension.factory.parser.mask.OffsetMaskParser;
 import com.sk89q.worldedit.extension.factory.parser.mask.RegionMaskParser;
 import com.sk89q.worldedit.extension.factory.parser.mask.SlopeMaskParser;
 import com.sk89q.worldedit.extension.factory.parser.mask.SolidMaskParser;
+import com.sk89q.worldedit.extension.factory.parser.saved.SavedInputParser;
+import com.sk89q.worldedit.extension.factory.parser.saved.SavedInputs;
 import com.sk89q.worldedit.extension.input.InputParseException;
 import com.sk89q.worldedit.extension.input.NoMatchException;
 import com.sk89q.worldedit.extension.input.ParserContext;
@@ -87,6 +89,9 @@ public final class MaskFactory extends AbstractFactory<Mask> {
         register(new BiomeMaskParser(worldEdit));
         register(new SlopeMaskParser(worldEdit));
         register(new AdjacentMaskParser(worldEdit));
+
+        // #name for masks saved with //mask save (keep this after the built-in # masks)
+        register(new SavedInputParser<>(worldEdit, SavedInputs::masks, WorldEdit::getMaskFactory));
     }
 
     @Override
