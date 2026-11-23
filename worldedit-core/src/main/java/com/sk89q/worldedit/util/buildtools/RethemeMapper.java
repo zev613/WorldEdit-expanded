@@ -101,6 +101,37 @@ public final class RethemeMapper {
     }
 
     /**
+     * Check whether a block belongs to a material family, e.g. {@code oak_stairs} to {@code oak}
+     * (but {@code dark_oak_stairs} does not).
+     *
+     * @param blockId the block id, with or without namespace
+     * @param token the material token
+     * @return true if the block's id contains the material
+     */
+    public static boolean isMember(String blockId, String token) {
+        String path = blockId.substring(blockId.indexOf(':') + 1);
+        path = ALIASES.getOrDefault(path, path);
+        return findMatch(path.split("_"), token.toLowerCase(Locale.ROOT).split("_")) >= 0;
+    }
+
+    /**
+     * Check whether any of the given blocks belongs to a material family, so a typo such as
+     * {@code spruse} can be reported instead of silently changing nothing.
+     *
+     * @param blockIds the ids of all known blocks
+     * @param token the material token
+     * @return true if at least one block has the material in its id
+     */
+    public static boolean isKnownMaterial(Iterable<String> blockIds, String token) {
+        for (String id : blockIds) {
+            if (isMember(id, token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Compute candidate target ids for the given block id.
      *
      * @param blockId the source block id, with or without namespace

@@ -30,6 +30,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
+import com.sk89q.worldedit.util.formatting.text.TextComponent;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
@@ -253,22 +254,34 @@ public class NamedClipboardStore {
             throws EmptyClipboardException {
         try {
             return session.getNamedClipboard(name);
-        } catch (EmptyClipboardException e) {
+        } catch (EmptyClipboardException _) {
             if (sanitizeName(name) == null) {
-                throw e;
+                throw noSuchClipboard(name);
             }
             ClipboardHolder loaded;
             try {
                 loaded = load(actor.getUniqueId(), name);
             } catch (IOException ex) {
                 LOGGER.warn("Failed to load saved clipboard '" + name + "' of " + actor.getName(), ex);
-                throw e;
+                throw new EmptyClipboardException(TextComponent.of("The saved clipboard '" + name
+                    + "' could not be read: " + ex.getMessage()));
             }
             if (loaded == null) {
-                throw e;
+                throw noSuchClipboard(name);
             }
             session.setNamedClipboard(name, loaded);
             return loaded;
         }
+    }
+
+    /**
+     * The error for a named clipboard that is neither in memory nor on disk.
+     *
+     * @param name the name that was asked for
+     * @return the exception
+     */
+    public static EmptyClipboardException noSuchClipboard(String name) {
+        return new EmptyClipboardException(TextComponent.of("There is no clipboard called '" + name
+            + "' (see //clipboards list)."));
     }
 }

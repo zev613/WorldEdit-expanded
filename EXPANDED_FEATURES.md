@@ -94,7 +94,7 @@ You get a message when it starts and finishes.
 
 `//texture <rules> [-d depth] [-s noiseScale]` paints the top of the terrain in the selection by rules, picking the
 first rule that matches each column. A rule is `pattern@condition&condition...`, or just `pattern` for "anything else".
-Conditions: `y>N`, `y<N`, `slope>D`, `slope<D` (degrees), `noise>F`, `noise<F` (0-1), and `>=`/`<=` also work.
+Conditions: `y>N`, `y<N`, `slope>D`, `slope<D` (degrees), `noise>F`, `noise<F` (0-1), and `>=`/`<=` also work. A noise threshold outside 0-1 or a slope outside 0-90 can never match, so it is refused.
 
 ```
 //texture snow_block@y>140,stone@slope>45,coarse_dirt@noise>0.7&slope>25,grass_block
@@ -110,16 +110,16 @@ instead of clearing it. Files go in the `heightmaps` folder of WorldEdit's confi
 
 | Command | What it does |
 |---|---|
-| `//path <pattern> [width] [maxSlope] [-s stairs]` (alias `//road`) | Road that follows the terrain between your selection points (pos1 → pos2, or through the points of a polygon/convex selection). It finds a gentle route, grades it so each step changes by at most one block, tunnels through hills (3 blocks of headroom), and puts pillars under bridges. `-s` puts stairs on the steps. Width defaults to 3; use 2 or more. |
+| `//path <pattern> [width] [maxSlope] [-s stairs]` (alias `//road`) | Road that follows the terrain between your selection points (pos1 → pos2, or through the points of a polygon/convex selection). It finds a gentle route, grades it so each step changes by at most one block, tunnels through hills (3 blocks of headroom), and puts pillars under bridges. `-s` puts stairs on the steps. Width is 1 to 64 blocks (default 3; 1 makes a narrow footpath). |
 | `//river [width] [depth] [-l maxLength] [-b bed]` | Carves a river downhill from your position until it reaches water, `-l` blocks (default 256), or a dip, where it makes a pond. The water never flows uphill, and low banks get levees. The bed defaults to sand. |
-| `//scatter <count> [minSpacing] [-k name] [-o yOffset] [-r seed] [-n] [-a]` | Places `count` randomly rotated copies of your clipboard (or named clipboard `-k`), spread out across the surface of the selection, e.g. rocks, ruins or bushes. `-n`: no rotation, `-a`: skip air, `-r`: repeatable result. The selection must reach down to the ground. |
+| `//scatter <count> [minSpacing] [-k name] [-o yOffset] [-r seed] [-n] [-a]` | Places `count` randomly rotated copies of your clipboard (or named clipboard `-k`, in memory or saved with `//clipboards save`), spread out across the surface of the selection, e.g. rocks, ruins or bushes. `-n`: no rotation, `-a`: skip air, `-r`: repeatable result. The selection must reach down to the ground. |
 | `//ptree <log> <leaves> [height] [branches] [leafRadius] [-l lean°] [-t 1\|2] [-r seed] [-d]` | A custom tree at your position with a leaning, curving trunk (`-t 2` for 2×2), branches ending in leaf clusters, and a crown. Leaves are made persistent unless you pass `-d`. |
 
 ## Building tools
 
 | Command | What it does |
 |---|---|
-| `//retheme <from> <to> [-m mask]` | Swaps a whole material family in the selection and keeps stair facing, door hinges, sign text and so on. Examples: `//retheme oak spruce`, `//retheme oak crimson` (logs become stems, leaves become wart blocks), `//retheme cobblestone mossy_cobblestone`, `//retheme stone_brick deepslate_brick`. Blocks with no equivalent are left alone and listed. `oak` doesn't touch `dark_oak`/`pale_oak`. |
+| `//retheme <from> <to> [-m mask]` | Swaps a whole material family in the selection and keeps stair facing, door hinges, sign text and so on. Examples: `//retheme oak spruce`, `//retheme oak crimson` (logs become stems, leaves become wart blocks), `//retheme cobblestone mossy_cobblestone`, `//retheme stone_brick deepslate_brick`. Blocks with no equivalent are left alone and listed. `oak` doesn't touch `dark_oak`/`pale_oak`. A material that no block has in its name (a typo such as `spruse`) is reported instead of changing nothing. |
 | `//symmetry [x\|z\|xz\|off] [-p]` (alias `//sym`) | Mirrors everything you build, with commands *and* brushes, across a plane through where you stand (`-p`: through the selection centre). `xz` mirrors 4 ways. Stairs, doors etc. are flipped correctly, and one `//undo` undoes both sides. It only applies in the world where you turned it on, and is forgotten on restart. (`//mirror` was already taken by `//flip`.) |
 | `//lightfill [minLight] [-b block] [-s spacing]` | Makes the selection mob-proof: adds light sources (invisible `light` blocks by default, or e.g. `-b torch`) until every spot a mob could spawn on has at least `minLight` block light (default 1). Lower `-s` spreads lights more densely. The lighting is an approximation of the game's. |
 | `//find <mask> [limit] [-r radius] [-c]` | Lists the nearest blocks matching the mask in the selection (or within `-r` blocks of you) plus the total. Click coordinates to set pos1, or `[tp]` to teleport. `-c` shows which chunks have the most matches. |
@@ -203,7 +203,7 @@ selection commands work inside the heart, star or torus: `//selshape heart 12 -f
 
 | Group | Shapes (aliases in brackets) |
 |---|---|
-| Solids | `heart` (love), `star`, `torus` (donut, ring), `egg`, `crescent` (moon), `superellipsoid` (roundcube), `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron` |
+| Solids | `sphere` (ball), `cube` (box, cuboid), `cylinder` (cyl, upright), `cone` (point up), `pyramid` (square base, point up), `heart` (love), `star`, `torus` (donut, ring), `egg`, `crescent` (moon), `superellipsoid` (roundcube), `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron` |
 | Building | `arch`, `tower` (twist, prism), `hourglass`, `hyperboloid` (coolingtower) |
 | Knots and curves | `helix` (spring), `knot` (trefoil, torusknot), `dna`, `coil`, `lissajous`, `lorenz` (butterfly) |
 | Surfaces | `saddle` (pringle), `ripple`, `bowl` (dish), `mobius`, `klein`, `seashell` |
@@ -664,16 +664,16 @@ working on a small block interface (`AgeWorld`).
 
 | Command | What it does |
 |---|---|
-| `//helix <pattern> <radius>[,<radiusZ>] <height> [turns] [thickness] [-h]` | Spiral around your position. `//hhelix` is the hollow version. |
-| `//torus <pattern> <major radius> <minor radius> [-h]` | Donut around your position. `//htorus` is the hollow version. |
-| `//catenary <pattern> [sag] [thickness] [-h]` | Hanging rope/chain between pos1 and pos2 (or between convex-selection vertices). `sag 0` picks a sag automatically. |
-| `//strata <p1,p2,...> [thickness] [dip°] [azimuth°] [waviness]` | Fills the selection with tilted rock layers. |
-| `//erode [iterations]` | Thermal erosion: blocks on 2+ high drops slide down to the lowest neighbouring column. |
-| `//weather [severity 0-1] [-m] [-c]` | Cracks stone/deepslate/blackstone bricks. `-m` adds moss, `-c` advances copper oxidation by one stage. |
-| `//autostairs <stair pattern> [slab pattern] [-u]` | Turns step edges in the selection into correctly facing stairs (and slabs). `-u` handles ceilings. |
-| `//roof [gable\|hip\|shed\|curved\|mansard] <pattern> [overhang] [pitch] [-h]` | Builds a roof over the selection footprint. |
-| `//insetfaces [margin] <pattern> [depth]` | Recessed panels on the selection's six faces. |
-| `//measure [x,y,z]` | Size, distances, angles, volume and surface area of the selection, or from pos1 to a point. |
+| `//helix <pattern> <radius>[,<radiusZ>] <height> [turns] [thickness] [-h]` | Spiral climbing up from your position: radius at least 1, height 1-1024, turns 0.25-200, thickness 0 = one block. `//hhelix` is the hollow version. For several strands see `//shape helix`. Example: `//helix oak_planks 6 20 3`. |
+| `//torus <pattern> <ring radius> <tube radius> [-h]` | Donut lying flat around your position; the tube radius must be smaller than the ring radius. `//htorus` is the hollow version. To tilt or stretch it see `//shape torus`. Example: `//torus stone 10 3`. |
+| `//catenary <pattern> [sag] [thickness] [-h]` | Hanging rope/chain between pos1 and pos2 (or between convex-selection vertices). `sag 0` picks a sag automatically. Example: `//catenary chain 4`. |
+| `//strata <p1,p2,...> [thickness] [tilt°] [direction°] [waviness]` | Fills the whole selection (air included) with repeating rock layers. Tilt is how steeply they tilt (0 = flat, 90 = upright), direction is which way, in degrees clockwise from north, waviness 0 (straight) to 5. Example: `//strata stone,andesite,granite 3 20 90 1`. |
+| `//erode [passes]` | Wears down steep slopes: in each pass (1-50) the top block of a column 2+ blocks above a neighbour slides down to the lowest neighbouring column. Stops early when nothing more can slide. |
+| `//weather [severity 0-1] [-m] [-c]` | Cracks stone/deepslate/blackstone bricks and deepslate tiles. `-m` also makes cobblestone and stone bricks (and their stairs, slabs, walls) mossy, `-c` ages unwaxed copper by one stage. Other blocks are left alone; if nothing changed it says what it works on. |
+| `//autostairs <stair pattern> [slab pattern] [-u]` | Turns step edges in the selection into correctly facing stairs (and slabs). `-u` handles ceilings. A pattern without a `facing` property (e.g. `stone`) is refused. |
+| `//roof [gable\|hip\|shed\|curved\|mansard] <pattern> [overhang] [pitch] [-h]` | Builds a roof over the selection footprint. Type and pattern may come in either order (type defaults to gable); an unknown type or a missing pattern is reported. Overhang 0-32 blocks; pitch up to 10 (1 = 45 degrees). On a flat selection (1-2 blocks high) the roof sits on top and rises `pitch` blocks per block inwards; on a taller selection it starts at the bottom and is `pitch` times the selection's height. Example: `//roof hip spruce_planks 1 0.5`. |
+| `//insetfaces [margin] <pattern> [depth]` | Recessed panels on the selection's six faces, with a `margin`-wide border; `depth` 0 = flush. A margin too big for the selection is refused with the largest that fits. |
+| `//measure [x,y,z]` | Size, distances, angles, volume and surface area of the selection (pos1 to pos2), or from pos1 to a point. Sizes count both end blocks in both modes (like `//size`); distances are between block centres. |
 | `//copy -k <name>`, `//paste -k <name>` | Copy into or paste from a named clipboard. |
 | `//clipboards [list\|save\|load\|delete] [name]` | Manage named clipboards (saved to disk, so they survive restarts). |
 

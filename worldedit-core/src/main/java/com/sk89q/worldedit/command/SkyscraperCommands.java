@@ -115,7 +115,7 @@ public class SkyscraperCommands {
 
     @Command(
         name = "/skyscraper",
-        aliases = { "/tower", "/highrise" },
+        aliases = { "/highrise" },
         desc = "Builds a skyscraper in a building style, its entrance facing you",
         descFooter = "Styles: modern, art_deco, futuristic, gothic, brutalist, glass, brick, sandstone, or your own "
             + "(//style list). Settings are plain numbers, in order or as name=value: width 15, depth 15, story 4 "

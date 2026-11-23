@@ -59,7 +59,11 @@ class NamedShapesTest {
         int count = grid.count();
         double box = Math.pow(2 * size + 1, 3);
         assertTrue(count > 30, shape.getName() + " produced only " + count + " blocks");
-        assertTrue(count < box, shape.getName() + " filled its whole box");
+        if (shape.getName().equals("cube")) {
+            assertEquals(box, count, "cube must fill its whole box");
+        } else {
+            assertTrue(count < box, shape.getName() + " filled its whole box");
+        }
         // hollow is never bigger than filled
         VoxelGrid shell = grid.shell(1);
         assertTrue(shell.count() <= count);
@@ -86,6 +90,37 @@ class NamedShapesTest {
         assertFalse(grid.get(15, 6, 0));
         assertFalse(grid.get(0, 0, 0));
         assertFalse(grid.get(9, 0, 0));
+    }
+
+    @Test
+    void basicSolidsHaveTheExpectedBlocks() {
+        VoxelGrid sphere = build("ball", 5);
+        assertTrue(sphere.get(5, 0, 0));
+        assertTrue(sphere.get(0, -5, 0));
+        assertFalse(sphere.get(4, 4, 0));
+        assertEquals(1331, build("box", 5).count());
+
+        NamedShape cylinder = LIBRARY.find("cyl").orElseThrow();
+        VoxelGrid tall = ShapeGenerator.voxelize(cylinder, ShapeParameters.defaults(cylinder.getParameters()),
+            Vector3.at(3, 8, 3), ShapeOrientation.NONE, false, ShapeRasterizer.DEFAULT_MAX_VOLUME);
+        assertTrue(tall.get(3, 8, 0));
+        assertTrue(tall.get(0, -8, -3));
+        assertFalse(tall.get(3, 0, 3));
+        assertFalse(tall.get(0, 9, 0));
+
+        VoxelGrid cone = build("cone", 6);
+        assertTrue(cone.get(6, -6, 0));
+        assertTrue(cone.get(0, 6, 0));
+        assertFalse(cone.get(1, 6, 0));
+        assertFalse(cone.get(6, 0, 0));
+
+        VoxelGrid pyramid = build("pyramid", 6);
+        assertTrue(pyramid.get(6, -6, 6));
+        assertTrue(pyramid.get(0, 6, 0));
+        assertFalse(pyramid.get(1, 6, 1));
+        assertTrue(pyramid.get(3, 0, 3));
+        assertFalse(pyramid.get(4, 0, 4));
+        assertFalse(cone.get(5, -6, 5));
     }
 
     @Test

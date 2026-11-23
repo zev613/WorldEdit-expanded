@@ -59,6 +59,7 @@ import org.enginehub.piston.annotation.param.Arg;
 import org.enginehub.piston.annotation.param.ArgFlag;
 import org.enginehub.piston.annotation.param.Switch;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -107,7 +108,10 @@ public class BuildToolCommands {
 
     @Command(
         name = "/retheme",
-        desc = "Swap a whole material family in the selection (e.g. oak -> spruce), keeping block states"
+        desc = "Swap a whole material family in the selection (e.g. oak -> spruce), keeping block states",
+        descFooter = "Every block with the first material in its name becomes the same block in the second "
+            + "material, keeping which way it faces, door hinges, sign text and so on; blocks with no "
+            + "equivalent are left alone and listed. Example: //retheme oak spruce"
     )
     @CommandPermissions("worldedit.region.retheme")
     @Logging(REGION)
@@ -126,6 +130,15 @@ public class BuildToolCommands {
         checkCommandArgument(RethemeMapper.isValidToken(toToken),
             "Invalid material '" + to + "': use a block id fragment like spruce or deepslate_brick (no namespace)");
         checkCommandArgument(!fromToken.equals(toToken), "The two materials must differ");
+        List<String> blockIds = new ArrayList<>();
+        for (BlockType type : BlockType.REGISTRY) {
+            blockIds.add(type.id());
+        }
+        for (String token : List.of(fromToken, toToken)) {
+            checkCommandArgument(RethemeMapper.isKnownMaterial(blockIds, token), "'" + token
+                + "' is not a material I know: no block has it in its name. Try e.g. oak, spruce, birch, "
+                + "dark_oak, cobblestone, stone_brick, deepslate_brick, sandstone or copper.");
+        }
 
         Map<BlockType, Optional<BlockType>> mapping = new HashMap<>();
         Map<String, String> skipped = new LinkedHashMap<>();
@@ -166,7 +179,9 @@ public class BuildToolCommands {
             }
         }
 
-        actor.printInfo(TextComponent.of(changed + " blocks rethemed from " + fromToken + " to " + toToken + "."));
+        actor.printInfo(TextComponent.of(changed == 0 && skipped.isEmpty()
+            ? "There are no " + fromToken + " blocks in the selection, so nothing changed."
+            : "Rethemed " + fromToken + " to " + toToken + ": " + changed + " blocks changed."));
         if (!skipped.isEmpty()) {
             actor.printInfo(TextComponent.of("No " + toToken + " equivalent for (left unchanged):", TextColor.GRAY));
             int listed = 0;

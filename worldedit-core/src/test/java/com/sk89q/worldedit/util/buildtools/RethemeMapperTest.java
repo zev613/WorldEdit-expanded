@@ -174,4 +174,14 @@ class RethemeMapperTest {
         assertFalse(RethemeMapper.isValidToken(""));
         assertFalse(RethemeMapper.isValidToken(null));
     }
+
+    @Test
+    void unknownMaterialsAreDetected() {
+        assertTrue(RethemeMapper.isKnownMaterial(EXISTING, "oak"));
+        assertTrue(RethemeMapper.isKnownMaterial(EXISTING, "spruce"));
+        assertFalse(RethemeMapper.isKnownMaterial(EXISTING, "nosuch"));
+        assertFalse(RethemeMapper.isKnownMaterial(EXISTING, "spruse"));
+        assertTrue(RethemeMapper.isMember("minecraft:stripped_oak_log", "oak"));
+        assertFalse(RethemeMapper.isMember("minecraft:dark_oak_log", "oak"));
+    }
 }
