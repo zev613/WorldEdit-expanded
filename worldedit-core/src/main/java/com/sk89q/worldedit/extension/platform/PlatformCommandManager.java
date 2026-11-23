@@ -41,6 +41,8 @@ import com.sk89q.worldedit.command.ChunkCommands;
 import com.sk89q.worldedit.command.ChunkCommandsRegistration;
 import com.sk89q.worldedit.command.ClipboardCommands;
 import com.sk89q.worldedit.command.ClipboardCommandsRegistration;
+import com.sk89q.worldedit.command.CombineCommands;
+import com.sk89q.worldedit.command.CombineCommandsRegistration;
 import com.sk89q.worldedit.command.DiffCommands;
 import com.sk89q.worldedit.command.DiffCommandsRegistration;
 import com.sk89q.worldedit.command.EditJobCommands;
@@ -55,6 +57,8 @@ import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
 import com.sk89q.worldedit.command.LandscapeCommandsRegistration;
+import com.sk89q.worldedit.command.ModelCommands;
+import com.sk89q.worldedit.command.ModelCommandsRegistration;
 import com.sk89q.worldedit.command.NavigationCommands;
 import com.sk89q.worldedit.command.NavigationCommandsRegistration;
 import com.sk89q.worldedit.command.PaintBrushCommands;
@@ -444,6 +448,18 @@ public final class PlatformCommandManager {
             commandManager,
             LandscapeCommandsRegistration.builder(),
             new LandscapeCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            ModelCommandsRegistration.builder(),
+            new ModelCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/combine",
+            ImmutableList.of("/compound"),
+            "Build compound shapes: add, cut and keep named shapes, then blend and build them",
+            CombineCommandsRegistration.builder(),
+            new CombineCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
