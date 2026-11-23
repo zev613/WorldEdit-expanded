@@ -322,6 +322,85 @@ pixels are skipped. It stands upright facing you with its bottom-left corner at 
 Palettes for `-p`: `all` (default), `wool`, `concrete`, `terracotta`, `planks`, `stone`, `other`, or several joined
 with commas. Example: `//image logo.png 64 -p wool,concrete`.
 
+## Skyscrapers and building styles
+
+**`//skyscraper <style> <stories> [settings] [role=block ...]`** builds a skyscraper with its entrance facing you
+(north for the console): the middle of the front wall is 3 blocks in front of your placement position and the tower
+goes away from you. Settings are plain numbers, in order or as `name=value`:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `width`, `depth` | 15, 15 | Footprint (5-256). `width` runs across the entrance side. |
+| `story` | 4 | Blocks per story (3-12); the lobby is one block taller. |
+| `setbacks` | style | Times the tower steps inward going up (0-6), art-deco style. |
+| `taper` | 0 | Blocks each side narrows evenly from bottom to top. |
+| `shape` | style | `box`, `rounded` (rounded corners), `round` (cylindrical), `l` (L-shaped), or 0-3. |
+| `crown` | style | `flat` (parapet and rooftop plant room / water tower), `spire` (spire and antenna), `stepped` (three windowed tiers), `pyramid`, or 0-3. |
+| `seed` | random | Rooftop details. |
+| `interior` | 1 | 1 = floors with a central stairwell core (a stair spiralling round a 3x3 shaft, doorways on every floor), 0 = floor slabs only. Rooms are cleared to air either way. |
+
+Every story gets a floor slab with ceiling lights; the lobby has a glass front with pillars, a 3-wide door with a
+frame and a lit canopy. Each style family has its own look:
+
+| Style | Look (default shape / crown / setbacks) |
+|---|---|
+| `modern` | White ribbon windows (box / flat / 0) |
+| `art_deco` | Piers between vertical window strips, dark spandrels, gold details (box / stepped / 3) |
+| `futuristic` | All-round glass with glowing accent bands (round / spire / 0) |
+| `gothic` | Buttresses and pointed lancet windows, trim bands (box / spire / 1) |
+| `brutalist` | Heavy fins and concrete bands with small windows (box / flat / 1) |
+| `glass` | Curtain wall with thin mullions (rounded / flat / 0) |
+| `brick` | Classic NYC punched windows and a rooftop water tower (box / flat / 0) |
+| `sandstone` | Arched windows between columns (box / pyramid / 1) |
+
+A style is a set of blocks for the roles `wall`, `window` (glass), `trim`, `pillar`, `floor`, `roof`, `accent` and
+`light`. Change any of them for one building with `role=block` (any pattern works, e.g. `wall=80%bricks,20%granite`),
+or save your own style:
+
+* `//style list` — built-in and saved styles (click one for its blocks)
+* `//style info <style>` — the block for every role
+* `//style save <name> <base style> [role=block ...]` — saved in `building-styles.txt` in WorldEdit's folder
+  (one line per style, `name = base role=block ...`); a saved style keeps its base style's look
+* `//style delete <name>`
+
+```
+//skyscraper art_deco 40 width=25 depth=25
+//skyscraper glass 60 width=31 depth=21 crown=spire taper=4
+//skyscraper brick 12 shape=l window=cyan_stained_glass
+//style save harbour art_deco window=cyan_stained_glass accent=copper_block
+//skyscraper harbour 30 crown=pyramid
+```
+
+The style system is a plain reusable class (`function/generator/style`: `BuildingStyle`, `StyleRole`, `StyleLibrary`)
+for other generators to use.
+
+## Nature: rocks, crystals, giant mushrooms, roots and coral
+
+Each takes a block pattern, a size and plain-number settings (in order or `name=value`). The size is a radius, or
+`x,y,z` radii like `//shape`: things stand on the placement position, centred on it, at most `2x+1` by `2z+1`
+blocks across and `2y` tall (roots hang down `2y` from it). `seed` makes the result repeatable; without it a random
+seed is used and shown in the message, so you can build the same thing again. Nothing is left floating: only the
+largest connected piece is kept. Types can be given by name.
+
+| Command | Settings (defaults) | Notes |
+|---|---|---|
+| `//rock <pattern> <size>` (`//boulder`) | `roughness 0.5` (0 smooth - 1 jagged), `seed` | A few overlapping lumps deformed by noise, faint weathered ledges, flat base. Mixed patterns (`stone,andesite,cobblestone`) look natural. |
+| `//crystals <pattern> <size>` (`//geode`) | `count 7` (1-40), `seed` | Pointed hexagonal prisms of different lengths and tilts growing from a small base; the tallest reaches about `2y`. |
+| `//giantmushroom <stem> <cap> <size> [-u underside]` | `type round` (`round`, `flat`, `bell`), `seed` | Slightly curved stem; round = red-mushroom dome (hollow), flat = wide brown disc, bell = tall cone. `-u` fills the gills under the cap. Size = cap radius; height `2y`. |
+| `//roots <pattern> <size>` | `count 6` (1-24), `seed` | Twisting, tapering roots that branch and spread out and down from the placement position (under trees or floating islands). |
+| `//coral <pattern> <size>` (`//reef`) | `type branching` (`branching`, `brain`, `fan`, `tubes`), `seed` | Branching: tree-like; brain: a wrinkled ball with winding grooves; fan: a flat, one-block lattice; tubes: a cluster of hollow pipes. |
+
+```
+//rock stone,andesite,cobblestone 6 roughness=0.8
+//rock mossy_cobblestone,stone 10,4,7 seed=12
+//crystals amethyst_block,purple_stained_glass 6 count=9
+//giantmushroom mushroom_stem red_mushroom_block 8 round
+//giantmushroom mushroom_stem brown_mushroom_block 12,8,12 flat -u mushroom_stem
+//roots oak_wood,rooted_dirt 8 count=7
+//coral brain_coral_block 4 brain
+//coral tube_coral_block,horn_coral_block 6 tubes seed=3
+```
+
 ## New commands
 
 | Command | What it does |
@@ -363,5 +442,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
 `worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock`, `worldedit.generation.crystals`, `worldedit.generation.giantmushroom`, `worldedit.generation.roots`, `worldedit.generation.coral`. The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
