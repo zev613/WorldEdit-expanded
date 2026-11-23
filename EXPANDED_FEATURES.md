@@ -548,6 +548,96 @@ largest connected piece is kept. Types can be given by name.
 //coral tube_coral_block,horn_coral_block 6 tubes seed=3
 ```
 
+## Pasting onto terrain and in grids
+
+**`//paste -c [-r radius] [-f] [-w]`** (conform paste) makes every vertical column of the clipboard follow the
+terrain under it, so roads, paths, walls, fences and gardens drape over hills instead of floating or being buried.
+The clipboard's bottom layer (its lowest layer that has any non-air block) is put on the ground in every column, and
+the rest of that column moves with it, so things that float above the bottom layer in the clipboard (an arch, a lamp
+arm) keep their height above it. Each column rests on the ground surface nearest to where a plain `//paste` would put
+it: if that spot is inside the ground it climbs to the top, otherwise it looks down. Ground is any solid block except
+leaves, logs and other tree parts, and snow layers; grass, flowers and air are skipped. Water is not ground (a path
+across a river goes along the river bed); with `-w` water surfaces count as ground, so the path crosses on top. The
+column heights are smoothed over `-r` blocks around each column (default 1, 0 = follow the terrain exactly, at most
+8), so a 3-wide road loses single-block bumps, but a column is never lifted above the ground (nothing floats) and
+sinks at most one block into it (it replaces a bump's top block). `-f` fills any air under the bottom block of each
+column down to the ground with that block, e.g. under the doorway of a wall or under columns whose own bottom is
+higher than the clipboard's bottom layer. Works with `-a`, `-k <name>`, `-s`/`-n`, `-v`, `//rotate` and `//flip`, and
+is one `//undo`. `-m` works unless the clipboard is rotated or flipped; `-e` and `-b` are ignored with `-c`. Columns
+with no ground at all (off the edge of the world) take the height of the nearest column that has ground. Example:
+copy a 3-wide, 1-high strip of path blocks, then `//paste -c -a` across a hill.
+
+**`//grid <columns> <rows> [spacing] [row spacing] [-s] [-a] [-r] [-d seed] [-g] [-y rise] [-k name]`** repeats the
+clipboard in a grid on the ground plane: `columns` copies to your right and `rows` copies away from you (along the
+nearest world axis; from the console, columns go along +x and rows along +z). `spacing` is the gap in blocks between
+copies (default 0 = touching); the row spacing defaults to the same. Example: copy a 20x20 city block and
+`//grid 5 5 6` for 25 blocks with 6-wide streets. The first copy goes where `//paste` would put it. With `-s` the
+selection is repeated instead (like `//stack`, air included unless `-a`); the selection itself is the first copy and
+is left as it is. `-r` turns each copy a random multiple of 90 degrees for variety and prints the seed; `-d <seed>`
+repeats a layout (and implies `-r`). With `-r`, copies that are not square get square cells as wide as their longest
+side, and each copy is centred in its cell. `-g` drops (or lifts) each copy so its lowest solid layer sits on the
+ground under it, like `//stackpath -g`. `-y <rise>` raises each row by that many blocks, for terraces up a hill
+(-64 to 64). At most 10,000 copies and 50 million blocks in total. One `//undo` removes the whole grid.
+
+## Saved patterns and masks, and the history browser
+
+**Saved patterns.** Give any pattern a name once and use it as `#name` everywhere a pattern is accepted: `//set`,
+`//replace`, brushes, `//shape`, and inside other patterns.
+
+```
+//pattern save oldstone 50%stone_bricks,30%cracked_stone_bricks,20%mossy_stone_bricks
+//set #oldstone
+//shape heart #oldstone 10
+//set #stripes[#oldstone,glass,2]
+//pattern save wall #stripes[#oldstone,glass,2]
+```
+
+| Command | What it does |
+|---|---|
+| `//pattern save <name> <pattern>` | Saves (or replaces) a pattern. It is checked first; a pattern that doesn't work is refused with the reason. |
+| `//pattern delete <name>` | Deletes it (and warns if other saved patterns used it). |
+| `//pattern list` | Lists the saved patterns. Click one to put `//set #name` in your chat box, shift-click to insert `#name`. |
+| `//pattern info <name>` | Shows the pattern, whether it works right now and which saved patterns use it. |
+| `//mask save\|delete\|list\|info ...` | The same for masks, e.g. `//mask save ores coal_ore,iron_ore,copper_ore` then `//replace #ores stone`. Masks may contain spaces. |
+
+* Names use letters, digits, `_` and `-` (up to 32 characters, not case sensitive). Names of built-in `#` patterns
+  and masks (`#clipboard`, `#stripes`, `#gradient`, `#region`, ...) can't be used.
+* Saved patterns can use other saved patterns. A pattern that ends up using itself (`a` uses `b`, `b` uses `a`) gives an
+  error instead of hanging.
+* They are shared by everyone on the server and kept in `saved-patterns.txt` / `saved-masks.txt` in WorldEdit's folder.
+* `#name` is offered when tab-completing patterns and masks.
+
+**History browser.** `//history [page]` (alias `//edits`) lists your recent edits, newest first: what made each one
+(e.g. `//set stone`, `brush (sphere)`), how many blocks changed, how long ago, and whether it is undone. Click
+`[undo to here]` to undo that edit and every newer one, or `[redo to here]` on an undone edit to redo up to it.
+`[info]` shows where the edit is and how big it is, and players get `[tp]` to go to its middle. Without clicking:
+`//history undo 3`, `//history redo 2`, `//history info 1`, `//history tp 1` (1 = newest). Edits restored from disk
+after a restart are listed as "edit" with "? blocks" because only the blocks were saved; `[info]` still shows where
+they are.
+
+## Ageing builds: ruins and overgrowth
+
+Both work on the selection, take `amount` (0-1, default 0.5) and `seed`, in order or as `name=value`, and are one
+undoable edit. Without a seed a random one is used and shown in the message, so the same result can be rebuilt.
+Amount 0 changes nothing.
+
+| Command | What it does |
+|---|---|
+| `//ruin [amount] [seed] [-r] [-g]` (`//decay`) | Walls and roofs crumble in whole chunks (smooth noise), more towards the top and outer edges of the build, floors and roofs over open space more still; the foundations mostly stay. Anything no longer connected to the ground falls. What is left weathers: stone bricks crack and get mossy (stairs and slabs keep their facing), cobblestone gets mossy, planks rot away in patches, logs get stripped, glass mostly breaks, doors, torches, lanterns, beds, carpets and the like go, copper oxidises. Fallen blocks pile up at the foot of the walls as cobblestone, gravel or the block itself, smoothed with slabs (`-r`: no rubble). `-g` adds grass, dirt and moss patches on flat surfaces. |
+| `//overgrow [amount] [seed] [-n] [-l]` (`//ivy`) | Vines hang down walls from where they start (more on north faces and in the shade under overhangs), leaf bushes gather at the foot of walls and in corners, moss carpet covers tops, grass, ferns and flowers grow on soil (`-n`: no flowers), hanging roots and cave vines hang under overhangs, glow lichen grows in dark corners (`-l`: none). Growth comes in clumps. Plants only fill air; above amount 0.6 some exposed stone and cobblestone tops become moss blocks. |
+
+The ground is the natural blocks (dirt, grass, stone, sand...) from the bottom of the selection up; everything above
+is the build, so include the ground under the build in the selection. Natural blocks are never knocked out.
+
+```
+//ruin
+//ruin 0.8 seed=12 -g
+//overgrow 0.7 -n
+```
+
+The logic is in plain classes (`function/generator/age`: `RuinGenerator`, `OvergrowGenerator`, `AgeMaterials`)
+working on a small block interface (`AgeWorld`).
+
 ## New commands
 
 | Command | What it does |
@@ -588,5 +678,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.clipboard.grid` (`//grid`; `//paste -c` uses `worldedit.clipboard.paste`), `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit` (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit` (`//mask save|delete`), `worldedit.history.list` (`//history`; undoing/redoing from it uses the normal undo/redo permissions), `worldedit.history.tp` (`[tp]` in `//history`). Using `#name` needs no permission, `worldedit.region.ruin` (`//ruin`), `worldedit.region.overgrow` (`//overgrow`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.

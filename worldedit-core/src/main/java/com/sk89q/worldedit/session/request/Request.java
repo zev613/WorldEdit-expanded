@@ -36,6 +36,7 @@ public final class Request {
     private @Nullable World world;
     private @Nullable LocalSession session;
     private @Nullable EditSession editSession;
+    private @Nullable String description;
     private boolean valid;
 
     private Request() {
@@ -93,6 +94,25 @@ public final class Request {
      */
     public void setEditSession(@Nullable EditSession editSession) {
         this.editSession = editSession;
+    }
+
+    /**
+     * Get a short description of what is being done, e.g. the command line,
+     * kept with edits in the undo history.
+     *
+     * @return the description, or {@code null}
+     */
+    public @Nullable String getDescription() {
+        return description;
+    }
+
+    /**
+     * Set a short description of what is being done.
+     *
+     * @param description the description
+     */
+    public void setDescription(@Nullable String description) {
+        this.description = description;
     }
 
     /**

@@ -28,6 +28,8 @@ import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MissingWorldException;
 import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.command.AgeCommands;
+import com.sk89q.worldedit.command.AgeCommandsRegistration;
 import com.sk89q.worldedit.command.ApplyBrushCommands;
 import com.sk89q.worldedit.command.BiomeCommands;
 import com.sk89q.worldedit.command.BiomeCommandsRegistration;
@@ -55,6 +57,8 @@ import com.sk89q.worldedit.command.GenerationCommands;
 import com.sk89q.worldedit.command.GenerationCommandsRegistration;
 import com.sk89q.worldedit.command.HeightmapCommands;
 import com.sk89q.worldedit.command.HeightmapCommandsRegistration;
+import com.sk89q.worldedit.command.HistoryBrowserCommands;
+import com.sk89q.worldedit.command.HistoryBrowserCommandsRegistration;
 import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
@@ -70,6 +74,10 @@ import com.sk89q.worldedit.command.PreviewCommands;
 import com.sk89q.worldedit.command.PreviewCommandsRegistration;
 import com.sk89q.worldedit.command.RegionCommands;
 import com.sk89q.worldedit.command.RegionCommandsRegistration;
+import com.sk89q.worldedit.command.SavedMaskCommands;
+import com.sk89q.worldedit.command.SavedMaskCommandsRegistration;
+import com.sk89q.worldedit.command.SavedPatternCommands;
+import com.sk89q.worldedit.command.SavedPatternCommandsRegistration;
 import com.sk89q.worldedit.command.SchematicCommands;
 import com.sk89q.worldedit.command.SchematicCommandsRegistration;
 import com.sk89q.worldedit.command.ScriptingCommands;
@@ -418,6 +426,11 @@ public final class PlatformCommandManager {
         );
         this.registration.register(
             commandManager,
+            AgeCommandsRegistration.builder(),
+            new AgeCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
             ChunkCommandsRegistration.builder(),
             new ChunkCommands(worldEdit)
         );
@@ -458,6 +471,11 @@ public final class PlatformCommandManager {
             commandManager,
             HistoryCommandsRegistration.builder(),
             new HistoryCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            HistoryBrowserCommandsRegistration.builder(),
+            new HistoryBrowserCommands(worldEdit)
         );
         this.registration.register(
             commandManager,
@@ -517,6 +535,20 @@ public final class PlatformCommandManager {
             commandManager,
             SkyscraperCommandsRegistration.builder(),
             new SkyscraperCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/pattern",
+            ImmutableList.of("/patterns"),
+            "Save patterns under a name and use them as #name",
+            SavedPatternCommandsRegistration.builder(),
+            new SavedPatternCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/mask",
+            ImmutableList.of("/masks"),
+            "Save masks under a name and use them as #name",
+            SavedMaskCommandsRegistration.builder(),
+            new SavedMaskCommands(worldEdit)
         );
         registerSubCommands(
             "/style",
@@ -649,6 +681,7 @@ public final class PlatformCommandManager {
         Actor actor = platformManager.createProxyActor(event.getActor());
         LocalSession session = worldEdit.getSessionManager().get(actor);
         Request.request().setSession(session);
+        Request.request().setDescription(event.getArguments());
         if (actor instanceof Entity entity && entity.getExtent() instanceof World world) {
             Request.request().setWorld(world);
         }

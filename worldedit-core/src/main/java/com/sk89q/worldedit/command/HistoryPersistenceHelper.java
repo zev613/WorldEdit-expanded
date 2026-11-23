@@ -105,6 +105,56 @@ final class HistoryPersistenceHelper {
     }
 
     /**
+     * Undo the newest edits, from memory and then from disk, like {@code //undo times}.
+     *
+     * @return how many edits were undone
+     */
+    static int undo(WorldEdit worldEdit, Actor actor, LocalSession session, int times) {
+        int timesUndone = 0;
+        for (int i = 0; i < times; ++i) {
+            BlockBag blockBag = actor instanceof Player player ? session.getBlockBag(player) : null;
+            EditSession undone = session.undo(blockBag, actor);
+            if (undone != null) {
+                timesUndone++;
+                worldEdit.flushBlockBag(actor, undone);
+            } else if (undoFromDisk(actor, session, blockBag)) {
+                timesUndone++;
+            } else {
+                break;
+            }
+        }
+        return timesUndone;
+    }
+
+    /**
+     * Redo the oldest undone edits, from disk and then from memory, like {@code //redo times}.
+     *
+     * @return how many edits were redone
+     */
+    static int redo(WorldEdit worldEdit, Actor actor, LocalSession session, int times) {
+        int timesRedone = 0;
+        for (int i = 0; i < times; ++i) {
+            BlockBag blockBag = actor instanceof Player player ? session.getBlockBag(player) : null;
+            Boolean diskRedo = redoFromDisk(actor, session, blockBag);
+            if (diskRedo != null) {
+                if (!diskRedo) {
+                    break;
+                }
+                timesRedone++;
+                continue;
+            }
+            EditSession redone = session.redo(blockBag, actor);
+            if (redone != null) {
+                timesRedone++;
+                worldEdit.flushBlockBag(actor, redone);
+            } else {
+                break;
+            }
+        }
+        return timesRedone;
+    }
+
+    /**
      * Undo the newest persisted edit, if persistent history is enabled.
      *
      * @return true if something was undone

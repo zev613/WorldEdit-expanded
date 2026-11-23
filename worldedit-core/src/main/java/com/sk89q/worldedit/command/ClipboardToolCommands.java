@@ -21,6 +21,7 @@ package com.sk89q.worldedit.command;
 
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
@@ -28,13 +29,17 @@ import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
 import com.sk89q.worldedit.command.util.Logging;
 import com.sk89q.worldedit.entity.Player;
 import com.sk89q.worldedit.extension.platform.Actor;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.function.clipboard.ClipboardGround;
 import com.sk89q.worldedit.function.clipboard.ClipboardScaler;
+import com.sk89q.worldedit.function.clipboard.GridLayout;
 import com.sk89q.worldedit.function.clipboard.PathSampler;
 import com.sk89q.worldedit.function.clipboard.RadialLayout;
 import com.sk89q.worldedit.function.clipboard.ScaleResampler;
 import com.sk89q.worldedit.function.clipboard.TransformedClipboardPlacer;
-import com.sk89q.worldedit.function.diff.WorldDiff;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
+import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.internal.annotation.Selection;
 import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -47,8 +52,6 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.session.NamedClipboardStore;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.world.block.BlockState;
-import com.sk89q.worldedit.world.registry.BlockMaterial;
 import org.enginehub.piston.annotation.Command;
 import org.enginehub.piston.annotation.CommandContainer;
 import org.enginehub.piston.annotation.param.Arg;
@@ -57,6 +60,7 @@ import org.enginehub.piston.annotation.param.Switch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static com.sk89q.worldedit.command.util.Logging.LogMode.PLACEMENT;
 
@@ -211,7 +215,8 @@ public class ClipboardToolCommands {
             Vector3 p = point.position();
             BlockVector3 to = BlockVector3.at(Math.floor(p.x() + 0.5), Math.floor(p.y() + 0.5), Math.floor(p.z() + 0.5));
             if (toGround) {
-                to = onGround(editSession, placer, to, lowest);
+                to = ClipboardGround.onGround(editSession, editSession.getWorld().getMinY(),
+                    editSession.getWorld().getMaxY(), placer, to, lowest);
             }
             placers.add(placer);
             targets.add(to);
@@ -222,6 +227,119 @@ public class ClipboardToolCommands {
         }
         actor.printInfo(TextComponent.of("Pasted " + placers.size() + " copies along the path ("
             + changed + " blocks)."));
+    }
+
+    @Command(
+        name = "/grid",
+        desc = "Repeats the clipboard (or with -s the selection) in a grid of rows and columns",
+        descFooter = "Columns go to your right and rows away from you (along the nearest world axis; from "
+            + "the console columns go along +x and rows along +z). Spacing is the gap in blocks between "
+            + "copies (0 = touching), e.g. //grid 5 5 6 makes a 5x5 block of copies with 6-wide streets. "
+            + "The first copy is where //paste would put it; with -s the selection itself is the first copy "
+            + "and stays as it is. -r turns each copy a random multiple of 90 degrees (the seed is shown; "
+            + "repeat a layout with -d <seed>), -g puts each copy on the ground, -y <rise> raises each row by "
+            + "that many blocks (terraces), -a skips air. One //undo removes all copies."
+    )
+    @CommandPermissions("worldedit.clipboard.grid")
+    @Logging(PLACEMENT)
+    public void grid(Actor actor, LocalSession session, EditSession editSession,
+                     @Arg(desc = "Copies to your right (columns)")
+                         int columns,
+                     @Arg(desc = "Copies away from you (rows)")
+                         int rows,
+                     @Arg(desc = "Gap between columns", def = "0")
+                         int spacingRight,
+                     @Arg(desc = "Gap between rows (default: same as between columns)", def = "-1")
+                         int spacingForward,
+                     @Switch(name = 's', desc = "Repeat the selection instead of the clipboard")
+                         boolean useSelection,
+                     @Switch(name = 'a', desc = "Skip air blocks")
+                         boolean ignoreAir,
+                     @Switch(name = 'r', desc = "Turn each copy randomly by multiples of 90 degrees")
+                         boolean randomTurn,
+                     @ArgFlag(name = 'd', desc = "Seed for -r (implies -r)", def = "")
+                         String seed,
+                     @Switch(name = 'g', desc = "Put each copy on the ground beneath it")
+                         boolean toGround,
+                     @ArgFlag(name = 'y', desc = "Blocks to raise each row", def = "0")
+                         int rise,
+                     @ArgFlag(name = 'k', desc = "Use a named clipboard", def = "")
+                         String clipName) throws WorldEditException {
+        int spacingFwd = spacingForward < 0 ? spacingRight : spacingForward;
+        Clipboard clipboard;
+        BlockVector3 anchor;
+        if (useSelection) {
+            Region region = session.getSelection(editSession.getWorld());
+            int limit = session.getBlockChangeLimit();
+            if (limit >= 0 && region.getBoundingBox().getVolume() >= limit) {
+                throw new MaxChangedBlocksException(limit);
+            }
+            BlockArrayClipboard copy = new BlockArrayClipboard(region);
+            copy.setOrigin(region.getMinimumPoint());
+            Operations.complete(new ForwardExtentCopy(editSession, region, copy, region.getMinimumPoint()));
+            clipboard = copy;
+            anchor = region.getMinimumPoint();
+        } else {
+            clipboard = TransformedClipboardPlacer.flatten(holder(session, actor, clipName));
+            anchor = session.getPlacementPosition(actor)
+                .add(clipboard.getRegion().getMinimumPoint().subtract(clipboard.getOrigin()));
+        }
+        BlockVector3 size = clipboard.getDimensions();
+        boolean turning = randomTurn || (seed != null && !seed.isEmpty());
+        long seedValue = 0;
+        List<GridLayout.Cell> cells;
+        int[] forward = actor instanceof Player ? GridLayout.forwardFromYaw(yawOf(actor)) : new int[] { 0, 1 };
+        int[] right = actor instanceof Player ? GridLayout.rightOf(forward) : new int[] { 1, 0 };
+        try {
+            GridLayout.check(columns, rows, spacingRight, spacingFwd, rise,
+                (long) size.x() * size.y() * size.z());
+            if (turning) {
+                seedValue = parseSeed(seed);
+            }
+            cells = GridLayout.layout(columns, rows, spacingRight, spacingFwd, size.x(), size.z(), right, forward,
+                rise, turning ? new Random(seedValue) : null);
+        } catch (IllegalArgumentException e) {
+            actor.printError(TextComponent.of(e.getMessage()));
+            return;
+        }
+        int lowest = TransformedClipboardPlacer.lowestSolidOffset(clipboard);
+        int minY = editSession.getWorld().getMinY();
+        int maxY = editSession.getWorld().getMaxY();
+
+        // work out every placement first, so ground checks see the world as it was
+        List<TransformedClipboardPlacer> placers = new ArrayList<>();
+        List<BlockVector3> targets = new ArrayList<>();
+        for (GridLayout.Cell cell : cells) {
+            if (useSelection && cell.column() == 0 && cell.row() == 0) {
+                continue;
+            }
+            TransformedClipboardPlacer placer = new TransformedClipboardPlacer(clipboard,
+                RadialLayout.clockwise(90.0 * cell.quarterTurns()), ignoreAir);
+            BlockVector3 to = anchor.add(cell.dx(), cell.dy(), cell.dz()).subtract(placer.getMinimum());
+            if (toGround) {
+                to = ClipboardGround.onGround(editSession, minY, maxY, placer, to, lowest);
+            }
+            placers.add(placer);
+            targets.add(to);
+        }
+        int changed = 0;
+        for (int i = 0; i < placers.size(); i++) {
+            changed += placers.get(i).place(editSession, targets.get(i));
+        }
+        actor.printInfo(TextComponent.of("Placed a " + columns + " x " + rows + " grid (" + placers.size()
+            + " copies, " + changed + " blocks)" + (turning ? ", random turns with seed " + seedValue : "")
+            + "."));
+    }
+
+    private static long parseSeed(String seed) {
+        if (seed == null || seed.isEmpty()) {
+            return new Random().nextLong();
+        }
+        try {
+            return Long.parseLong(seed);
+        } catch (NumberFormatException _) {
+            return seed.hashCode();
+        }
     }
 
     private static double yawOf(Actor actor) {
@@ -249,41 +367,5 @@ public class ClipboardToolCommands {
             return null;
         }
         return nodes;
-    }
-
-    private static boolean isGround(BlockState state) {
-        if (WorldDiff.isAir(state)) {
-            return false;
-        }
-        BlockMaterial material = state.getBlockType().getMaterial();
-        // grass and other plants that get replaced when building are not ground
-        return material.isSolid() || material.isLiquid() || !material.isReplacedDuringPlacement();
-    }
-
-    /**
-     * Move a copy up or down so its lowest solid layer rests on the highest ground under its
-     * footprint. The search starts at the top of the copy, so a copy that is partly buried is lifted.
-     */
-    private static BlockVector3 onGround(EditSession editSession, TransformedClipboardPlacer placer,
-                                         BlockVector3 to, int lowestOffset) {
-        BlockVector3 min = to.add(placer.getMinimum());
-        BlockVector3 max = to.add(placer.getMaximum());
-        int floor = editSession.getWorld().getMinY();
-        int top = Math.min(max.y(), editSession.getWorld().getMaxY());
-        int ground = Integer.MIN_VALUE;
-        for (int x = min.x(); x <= max.x(); x++) {
-            for (int z = min.z(); z <= max.z(); z++) {
-                for (int y = top; y >= floor && y > ground; y--) {
-                    if (isGround(editSession.getBlock(BlockVector3.at(x, y, z)))) {
-                        ground = y;
-                        break;
-                    }
-                }
-            }
-        }
-        if (ground == Integer.MIN_VALUE) {
-            return to;
-        }
-        return to.withY(ground + 1 - lowestOffset);
     }
 }
