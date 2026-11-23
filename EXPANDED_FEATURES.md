@@ -411,6 +411,63 @@ Recording stops by itself (nothing is selected) when you log out or change world
 tick (a general per-tick hook, `WorldEdit#getTickListeners()`, called next to the edit job queue); it is only registered
 while someone is walking. The command line has no walking player, so there only `//polywalk point x,y,z` adds points.
 
+## Modelling from drawings and combining shapes
+
+Draw a flat outline in blocks (any blocks, several materials are fine) and turn it into 3D, the way 3D modelling
+tools do. A "drawing" is the non-air blocks of your selection, standing upright like a wall (flat along x or z) and
+at most 2 blocks thick. Every block of the result looks up where it came from in the drawing, so there are no holes
+and each block keeps its material (a vase drawn with a gold rim stays gold-rimmed).
+
+| Command | What it does |
+|---|---|
+| `//lathe [degrees] [-c] [-r]` (alias `//spin`) | Spins the drawing around a vertical axis: vases, domes, towers, fountains. |
+| `//extrude <length> [twist] [taper] [-d direction]` (alias `//pull`) | Pulls the drawing straight out, optionally twisting and tapering it. |
+| `//sweep <profile> [pattern] [width] [settings] [-h] [-k]` | Drags a cross-section along a smooth path through the selection's points. |
+| `//combine add\|cut\|keep\|smooth\|list\|undo\|clear\|build\|select` | Builds compound shapes from named shapes. |
+
+**`//lathe`** (the name `//revolve` was already taken by WorldEdit's "paste rotated copies" command). Draw half of
+the outline (or all of it), select it, **stand where the middle of the model should be** and run `//lathe`. The axis is
+the vertical line through where you stand (your placement position), in the plane of the drawing; it does not matter
+how far in front of or behind the drawing you stand. With `-c` the axis is instead the edge of the drawing nearest to
+you, so you can stand anywhere on that side. Parts of the drawing on the far side of the axis are spun too, so a whole
+drawn vase works as well as half of one. An angle such as `//lathe 180` spins only part of the way, clockwise seen
+from above. The drawing stays where it is unless you add `-r`. Example: draw the right half of a vase in the plane
+z = 100 with its centre line at x = 50, stand at x = 50, `//lathe`.
+
+**`//extrude`** pulls the drawing along the axis it is thin in: away from you for an upright drawing, and upwards for a
+drawing lying on the ground (a floor plan). `-d north|south|east|west|up|down|me` picks the direction (it must be the
+axis the drawing is thin in). `twist` is how many degrees the far end is turned, `taper` how big it is (0.3 = a point,
+2 = twice as big). Example: `//extrude 20 90 0.3` turns a drawn star into a twisted spire.
+
+**`//sweep`** follows a path through the selection: pos1 to pos2 for a cuboid, or the points in order for
+`//sel poly` (at the polygon's lowest y) or `//sel convex`, smoothed into a curve. The cross-section stays upright
+(level left-to-right) along the whole path. `width` is in blocks (default 5); the pattern defaults to stone.
+Profiles: `circle` (tube), `square` (beam; `height=`), `arch` (tunnel or aqueduct standing on the path, open at the
+bottom; `height=`, `thickness=`), `ring` (pipe; `thickness=`), `rail` (two rails on sleepers; `spacing=` between
+sleepers). `circle`, `square` and `ring` are centred on the path; `arch` and `rail` stand on it.
+`-h` makes circles and squares hollow with open ends. `-k` (or the profile name `clipboard`) uses the flat drawing in
+your clipboard as the cross-section, keeping its blocks; the path runs through the spot you stood on when you copied
+it, and the drawing is used as you see it looking along the path (use `//flip` on the clipboard if it comes out
+mirrored). Examples: `//sweep arch stone_bricks 9 height=8`, `//sweep ring glass 5 thickness=1`,
+`//sweep rail oak_planks 3 spacing=2`, `//sweep clipboard`.
+
+**`//combine`** builds a compound shape from the shapes of `//shape`, one step at a time:
+
+* `//combine add <shape> <size|x,y,z> [settings] [-o x,y,z] [-r deg] [-t deg]` adds a shape (union). The first shape
+  is centred where you stand; `-o` puts later shapes that many blocks from the first shape's middle (x east, y up,
+  z south). `-r` turns and `-t` tilts it.
+* `//combine cut ...` carves a shape away (subtract) and `//combine keep ...` keeps only the overlap (intersect).
+  Steps apply in order.
+* `//combine smooth <blocks>` blends every join into a rounded fillet about that wide (0 = sharp). It works on
+  distance fields of the shapes, so it also rounds the edges of cuts.
+* `//combine list`, `//combine undo` (remove the last step), `//combine clear`.
+* `//combine build <pattern> [-h] [-m mask]` builds it where you stood when you added the first shape;
+  `//combine select` selects it instead, so `//set`, `//replace`, `//count` work inside it.
+
+Example: `//combine add superellipsoid 8 power=2`, `//combine add tower 3,10,3 -o 0,10,0`, `//combine smooth 3`,
+`//combine build stone`. Each player has one compound shape; it is kept in memory only and is lost when the server
+restarts.
+
 ## New commands
 
 | Command | What it does |
@@ -451,7 +508,5 @@ On servers with a permissions plugin, the new nodes are:
 `worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
 `worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
 `worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.brush.shape`,
-`worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`. Smart selections: `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`),
-`worldedit.selection.polywalk` (`//polywalk`).
+`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
 In single-player, and for operators, everything is allowed.
