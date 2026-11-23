@@ -671,7 +671,7 @@ public class RegionCommands {
     private static BlockState transferBlockProperties(BlockState original, BlockType newType) {
         BlockState result = newType.getDefaultState();
         for (com.sk89q.worldedit.registry.state.Property<?> prop : original.getStates().keySet()) {
-            com.sk89q.worldedit.registry.state.Property<?> targetProp = newType.getProperty(prop.name());
+            com.sk89q.worldedit.registry.state.Property<?> targetProp = newType.getPropertyMap().get(prop.name());
             if (targetProp != null) {
                 result = applyPropertyUnchecked(result, targetProp, original.getState(prop));
             }
@@ -715,7 +715,7 @@ public class RegionCommands {
                           @Switch(name = 'u', desc = "Work on ceilings, with upside-down stairs")
                               boolean upsideDown) throws WorldEditException {
         BlockType stairType = stairPattern.applyBlock(region.getMinimumPoint()).getBlockType();
-        if (stairType.getProperty("facing") == null) {
+        if (!stairType.getPropertyMap().containsKey("facing")) {
             actor.printError(TextComponent.of(stairType.id() + " is not a stair block, so it cannot face up the "
                 + "slope. Use a stair block, e.g. //autostairs stone_brick_stairs"));
             return 0;
@@ -752,7 +752,7 @@ public class RegionCommands {
 
             if (slabPattern != null && higherCount == 0 && lowerCount == 1) {
                 BlockState slabState = slabPattern.applyBlock(pt).toImmutableState();
-                var typeProp = slabState.getBlockType().getProperty("type");
+                var typeProp = slabState.getBlockType().getPropertyMap().get("type");
                 if (typeProp != null) {
                     slabState = applyPropertyString(slabState, typeProp, upsideDown ? "top" : "bottom");
                 }
@@ -843,9 +843,9 @@ public class RegionCommands {
 
             BlockState targetState = stairPattern.applyBlock(pt).toImmutableState();
             var bType = targetState.getBlockType();
-            var facingProp = bType.getProperty("facing");
-            var halfProp = bType.getProperty("half");
-            var shapeProp = bType.getProperty("shape");
+            var facingProp = bType.getPropertyMap().get("facing");
+            var halfProp = bType.getPropertyMap().get("half");
+            var shapeProp = bType.getPropertyMap().get("shape");
 
             if (facingProp != null) {
                 targetState = applyPropertyString(targetState, facingProp, facing);
@@ -896,7 +896,7 @@ public class RegionCommands {
     public int roof(Actor actor, World world, LocalSession session, EditSession editSession,
                     @Selection Region region,
                     @Arg(desc = "The roof type (gable, hip, shed, curved, mansard) and the pattern, then "
-                        + "the overhang and pitch", variable = true)
+                        + "the overhang and pitch", variable = true, def = "")
                         List<String> words,
                     @Switch(name = 'h', desc = "Build only the roof surface (hollow)")
                         boolean hollow) throws WorldEditException {

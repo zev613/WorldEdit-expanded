@@ -273,7 +273,7 @@ public class GenerationCommands {
                          double turns,
                      @Arg(desc = "How fat the strand is (0 = one block)", def = "0")
                          double thickness,
-                     @Switch(name = 'h', desc = "Generate only a shell")
+                     @Switch(name = 'h', desc = "Make the strand a hollow tube")
                          boolean shell,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
@@ -350,7 +350,7 @@ public class GenerationCommands {
                          double majorRadius,
                      @Arg(desc = "The tube radius: how fat the tube is (smaller than the ring radius)")
                          double minorRadius,
-                     @Switch(name = 'h', desc = "Generate only a shell")
+                     @Switch(name = 'h', desc = "Make the donut hollow")
                          boolean shell,
                        @Switch(name = 'c', desc = CrosshairPlacement.FLAG_DESCRIPTION)
                            boolean atCrosshair) throws WorldEditException {
