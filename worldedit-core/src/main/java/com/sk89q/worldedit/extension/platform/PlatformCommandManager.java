@@ -41,6 +41,8 @@ import com.sk89q.worldedit.command.ChunkCommands;
 import com.sk89q.worldedit.command.ChunkCommandsRegistration;
 import com.sk89q.worldedit.command.ClipboardCommands;
 import com.sk89q.worldedit.command.ClipboardCommandsRegistration;
+import com.sk89q.worldedit.command.ClipboardToolCommands;
+import com.sk89q.worldedit.command.ClipboardToolCommandsRegistration;
 import com.sk89q.worldedit.command.DiffCommands;
 import com.sk89q.worldedit.command.DiffCommandsRegistration;
 import com.sk89q.worldedit.command.EditJobCommands;
@@ -411,6 +413,11 @@ public final class PlatformCommandManager {
             commandManager,
             ClipboardCommandsRegistration.builder(),
             new ClipboardCommands()
+        );
+        this.registration.register(
+            commandManager,
+            ClipboardToolCommandsRegistration.builder(),
+            new ClipboardToolCommands()
         );
         this.registration.register(
             commandManager,
