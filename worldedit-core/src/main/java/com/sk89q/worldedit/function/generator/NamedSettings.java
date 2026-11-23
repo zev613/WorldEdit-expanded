@@ -21,6 +21,7 @@
 package com.sk89q.worldedit.function.generator;
 
 import com.google.common.base.Splitter;
+import com.sk89q.worldedit.function.generator.shape.ShapeParameter;
 import com.sk89q.worldedit.function.generator.shape.ShapeParameters;
 
 import java.util.List;
@@ -63,8 +64,7 @@ public final class NamedSettings {
             }
             if (named && !word.isEmpty() && !Character.isDigit(word.charAt(0)) && word.charAt(0) != '-'
                 && word.charAt(0) != '.') {
-                throw new IllegalArgumentException("Unknown " + setting + " '" + word + "'. Choose "
-                    + describe(names));
+                throw new IllegalArgumentException(ShapeParameter.unknownChoice(setting, names, word));
             }
             return argument;
         }).toList();

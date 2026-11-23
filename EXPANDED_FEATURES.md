@@ -203,7 +203,7 @@ selection commands work inside the heart, star or torus: `//selshape heart 12 -f
 
 | Group | Shapes (aliases in brackets) |
 |---|---|
-| Solids | `heart`, `star`, `torus` (donut, ring), `egg`, `crescent` (moon), `superellipsoid` (roundcube), `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron` |
+| Solids | `heart` (love), `star`, `torus` (donut, ring), `egg`, `crescent` (moon), `superellipsoid` (roundcube), `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron` |
 | Building | `arch`, `tower` (twist, prism), `hourglass`, `hyperboloid` (coolingtower) |
 | Knots and curves | `helix` (spring), `knot` (trefoil, torusknot), `dna`, `coil`, `lissajous`, `lorenz` (butterfly) |
 | Surfaces | `saddle` (pringle), `ripple`, `bowl` (dish), `mobius`, `klein`, `seashell` |
@@ -675,7 +675,7 @@ working on a small block interface (`AgeWorld`).
 | `//insetfaces [margin] <pattern> [depth]` | Recessed panels on the selection's six faces. |
 | `//measure [x,y,z]` | Size, distances, angles, volume and surface area of the selection, or from pos1 to a point. |
 | `//copy -k <name>`, `//paste -k <name>` | Copy into or paste from a named clipboard. |
-| `//clipboards [list\|save\|load] [name]` | Manage named clipboards (they last for the current session only). |
+| `//clipboards [list\|save\|load\|delete] [name]` | Manage named clipboards (saved to disk, so they survive restarts). |
 
 ## New patterns
 
@@ -693,12 +693,41 @@ working on a small block interface (`AgeWorld`).
 ## Permissions
 
 On servers with a permissions plugin, the new nodes are:
-`worldedit.generation.helix`, `worldedit.generation.torus`, `worldedit.region.catenary`, `worldedit.region.strata`,
-`worldedit.region.erode`, `worldedit.region.weather`, `worldedit.region.autostairs`, `worldedit.region.roof`,
-`worldedit.region.insetfaces`, `worldedit.clipboard.list`, `worldedit.preview`, `worldedit.jobs`
-(plus `worldedit.jobs.others` to cancel/finish other players' jobs), `worldedit.region.texture`,
-`worldedit.heightmap.import`, `worldedit.heightmap.export`, `worldedit.generation.path`, `worldedit.generation.river`,
-`worldedit.generation.scatter`, `worldedit.generation.ptree`, `worldedit.region.retheme`, `worldedit.symmetry`,
-`worldedit.region.lightfill`, `worldedit.find`, `worldedit.diff`, `worldedit.diff.restore`,
-`worldedit.generation.shape.named` (`//shape`, `//shapes`), `worldedit.selection.shape` (`//selshape`), `worldedit.generation.shape.preset` (saving/deleting presets), `worldedit.region.warp` (`//warp`, `//warps`), `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`), `worldedit.generation.image` (`//image`), `worldedit.clipboard.scale` (`//scale`), `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`), `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`), `worldedit.generation.sweep` (`//sweep`), `worldedit.generation.combine` (`//combine`), `worldedit.selection.connected` (`//selconnected`), `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`), `worldedit.brush.shape` (`/brush shape`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`), `worldedit.generation.skyscraper.style` (`//style save|delete`), `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`), `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`), `worldedit.generation.coral` (`//coral`), `worldedit.clipboard.grid` (`//grid`; `//paste -c` uses `worldedit.clipboard.paste`), `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit` (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit` (`//mask save|delete`), `worldedit.history.list` (`//history`; undoing/redoing from it uses the normal undo/redo permissions), `worldedit.history.tp` (`[tp]` in `//history`). Using `#name` needs no permission, `worldedit.region.ruin` (`//ruin`), `worldedit.region.overgrow` (`//overgrow`). The layout patterns need no extra permission. `//measure` uses `worldedit.selection.size`.
+
+* **Shapes and generators:** `worldedit.generation.shape.named` (`//shape`, `//shapes`),
+  `worldedit.generation.shape.preset` (saving and deleting presets with `//shapedef`),
+  `worldedit.generation.helix` (`//helix`), `worldedit.generation.torus` (`//torus`),
+  `worldedit.generation.combine` (`//combine`), `worldedit.brush.shape` (`/brush shape`)
+* **Building parts:** `worldedit.generation.build` (`//build`, `//builds`), `worldedit.generation.text` (`//text`),
+  `worldedit.generation.image` (`//image`), `worldedit.generation.skyscraper` (`//skyscraper`, `//style list|info`),
+  `worldedit.generation.skyscraper.style` (`//style save|delete`)
+* **Modelling:** `worldedit.generation.lathe` (`//lathe`), `worldedit.generation.extrude` (`//extrude`),
+  `worldedit.generation.sweep` (`//sweep`), `worldedit.region.warp` (`//warp`, `//warps`)
+* **Nature:** `worldedit.generation.rock` (`//rock`), `worldedit.generation.crystals` (`//crystals`),
+  `worldedit.generation.giantmushroom` (`//giantmushroom`), `worldedit.generation.roots` (`//roots`),
+  `worldedit.generation.coral` (`//coral`), `worldedit.generation.ptree` (`//ptree`)
+* **Landscape:** `worldedit.generation.path` (`//path`), `worldedit.generation.river` (`//river`),
+  `worldedit.generation.scatter` (`//scatter`), `worldedit.region.strata` (`//strata`), `worldedit.region.erode`
+  (`//erode`), `worldedit.region.texture` (`//texture`), `worldedit.heightmap.import` and
+  `worldedit.heightmap.export` (`//heightmap`)
+* **Region tools:** `worldedit.region.catenary` (`//catenary`), `worldedit.region.weather` (`//weather`),
+  `worldedit.region.autostairs` (`//autostairs`), `worldedit.region.roof` (`//roof`), `worldedit.region.insetfaces`
+  (`//insetfaces`), `worldedit.region.retheme` (`//retheme`), `worldedit.region.lightfill` (`//lightfill`),
+  `worldedit.region.ruin` (`//ruin`), `worldedit.region.overgrow` (`//overgrow`), `worldedit.symmetry`
+  (`//symmetry`), `worldedit.find` (`//find`)
+* **Clipboard:** `worldedit.clipboard.list` (`//clipboards`), `worldedit.clipboard.scale` (`//scale`),
+  `worldedit.clipboard.radial` (`//radial`), `worldedit.clipboard.stackpath` (`//stackpath`),
+  `worldedit.clipboard.grid` (`//grid`); `//paste -c` uses the normal `worldedit.clipboard.paste`
+* **Selection:** `worldedit.selection.shape` (`//selshape`), `worldedit.selection.connected` (`//selconnected`),
+  `worldedit.selection.build` (`//selbuild`), `worldedit.selection.polywalk` (`//polywalk`); `//measure` uses the
+  normal `worldedit.selection.size`
+* **History, comparing and jobs:** `worldedit.history.list` (`//history`; undoing and redoing from it use the normal
+  undo and redo permissions), `worldedit.history.tp` (`[tp]` in `//history`), `worldedit.diff` (`//diff`),
+  `worldedit.diff.restore` (`//diff restore`), `worldedit.preview` (`//preview`), `worldedit.jobs` (`//jobs`),
+  `worldedit.jobs.others` (cancelling or finishing other players' jobs)
+* **Saved patterns and masks:** `worldedit.pattern.saved` (`//pattern list|info`), `worldedit.pattern.saved.edit`
+  (`//pattern save|delete`), `worldedit.mask.saved` (`//mask list|info`), `worldedit.mask.saved.edit`
+  (`//mask save|delete`)
+* **No permission needed:** using a saved `#name` pattern or mask, and the layout patterns
+
 In single-player, and for operators, everything is allowed.

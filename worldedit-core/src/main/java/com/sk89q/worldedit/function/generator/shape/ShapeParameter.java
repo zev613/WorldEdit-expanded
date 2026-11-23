@@ -136,13 +136,26 @@ public record ShapeParameter(String name, double defaultValue, double min, doubl
      * @return the message
      */
     public String unknownChoice(String word) {
+        return unknownChoice(name, choices, word);
+    }
+
+    /**
+     * The message for a word that is not one of a setting's names, e.g.
+     * "Unknown type 'square'. Choose round, flat or bell.".
+     *
+     * @param setting the setting's name
+     * @param names the names, by number (several names for one number joined with {@code |})
+     * @param word the word typed
+     * @return the message
+     */
+    public static String unknownChoice(String setting, List<String> names, String word) {
         List<String> first = new ArrayList<>();
-        for (String choice : choices) {
+        for (String choice : names) {
             first.add(CHOICE_SPLITTER.split(choice).iterator().next());
         }
         String list = first.size() <= 1 ? String.join("", first)
             : String.join(", ", first.subList(0, first.size() - 1)) + " or " + first.getLast();
-        return "Unknown " + name + " '" + word + "'. Choose " + list + ".";
+        return "Unknown " + setting + " '" + word + "'. Choose " + list + ".";
     }
 
     /**

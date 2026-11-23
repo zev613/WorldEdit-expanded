@@ -390,7 +390,7 @@ public class BuildPartCommands {
     @Command(
         name = "/image",
         aliases = { "/pixelart" },
-        desc = "Builds pixel art from a PNG or JPG in the images folder, facing you",
+        desc = "Builds pixel art from a PNG, JPG, GIF or BMP in the images folder, facing you",
         descFooter = "Put images in the 'images' folder in WorldEdit's folder; //image list shows them. "
             + "Each pixel becomes the closest-coloured block; transparent pixels are skipped. "
             + "Palettes for -p: all, wool, concrete, terracotta, planks, stone, other (or several, e.g. wool,concrete)."
@@ -461,7 +461,7 @@ public class BuildPartCommands {
             return dot > 0 && IMAGE_EXTENSIONS.contains(name.substring(dot + 1).toLowerCase(Locale.ROOT));
         });
         if (files == null || files.length == 0) {
-            actor.printInfo(TextComponent.of("No images yet. Put PNG or JPG files in " + dir.getAbsolutePath()));
+            actor.printInfo(TextComponent.of("No images yet. Put PNG, JPG, GIF or BMP files in " + dir.getAbsolutePath()));
             return;
         }
         Arrays.sort(files);
