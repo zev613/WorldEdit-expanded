@@ -20,6 +20,8 @@
 
 package com.sk89q.worldedit.function.generator;
 
+import com.google.common.base.Splitter;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -27,6 +29,8 @@ import java.util.Locale;
  * Lets players type a name instead of a number for settings that pick one of a few choices.
  */
 public final class NamedSettings {
+
+    private static final Splitter CHOICES = Splitter.on('|');
 
     private NamedSettings() {
     }
@@ -48,7 +52,7 @@ public final class NamedSettings {
                 word = word.substring(prefix.length());
             }
             for (int i = 0; i < names.size(); i++) {
-                for (String name : names.get(i).split("\\|")) {
+                for (String name : CHOICES.split(names.get(i))) {
                     if (name.equals(word)) {
                         return prefix + i;
                     }
@@ -70,7 +74,7 @@ public final class NamedSettings {
             if (i > 0) {
                 text.append(", ");
             }
-            text.append(i).append(' ').append(names.get(i).split("\\|")[0]);
+            text.append(i).append(' ').append(CHOICES.split(names.get(i)).iterator().next());
         }
         return text.toString();
     }

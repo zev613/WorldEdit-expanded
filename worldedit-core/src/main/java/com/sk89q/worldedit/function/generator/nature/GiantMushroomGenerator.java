@@ -111,11 +111,10 @@ public final class GiantMushroomGenerator {
 
         // cap: a solid of revolution, hollow for the round and bell types
         boolean hollow = type != 1;
-        for (int y = (int) Math.floor(capBottom); y < height; y++) {
+        int firstY = Math.max(0, (int) Math.ceil(capBottom - 0.5));
+        for (int y = firstY; y < height; y++) {
             double f = (y + 0.5 - capBottom) / capHeight;
-            if (f < 0) {
-                continue;
-            }
+            boolean bottomLayer = y == firstY;
             double outer = profile(type, Math.min(1, f));
             double innerF = (y + 0.5 - capBottom) / Math.max(0.5, capHeight - thickness);
             double inner = hollow && innerF < 1 ? profile(type, innerF) - thickness / radius : -1;
@@ -129,7 +128,6 @@ public final class GiantMushroomGenerator {
                     if (rho > outer * wobble) {
                         continue;
                     }
-                    boolean bottomLayer = y == (int) Math.floor(capBottom) || f < 0.5 / capHeight;
                     if (rho <= inner * wobble) {
                         // inside a hollow cap: only the gills on the bottom layer
                         if (underside && bottomLayer) {

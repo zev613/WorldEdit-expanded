@@ -82,7 +82,7 @@ public final class CoralGenerator {
     private static void branching(NatureModel model, NatureSize size, Random random, long seed) {
         double radius = Math.max(MIN_RADIUS, Math.min(1.6, size.minHorizontal() * 0.12));
         SeededNoise[] wander = {
-            new SeededNoise(seed, 9, 0.2, 1), new SeededNoise(seed, 10, 0.2, 1), new SeededNoise(seed, 11, 0.2, 1)
+            new SeededNoise(seed, 9, 0.2, 1), new SeededNoise(seed, 10, 0.2, 1), new SeededNoise(seed, 11, 0.2, 1),
         };
         NatureMath.ball(model, Vector3.at(0, 0, 0), radius * 1.6, CORAL);
         Vector3 up = NatureMath.direction(random.nextDouble() * Math.PI * 2, Math.toRadians(80));

@@ -65,7 +65,7 @@ public final class RootGenerator {
         double spread = size.minHorizontal();
         double thickness = Math.max(MIN_RADIUS, spread * 0.14);
         SeededNoise[] wander = {
-            new SeededNoise(seed, 6, 0.12, 2), new SeededNoise(seed, 7, 0.12, 2), new SeededNoise(seed, 8, 0.12, 2)
+            new SeededNoise(seed, 6, 0.12, 2), new SeededNoise(seed, 7, 0.12, 2), new SeededNoise(seed, 8, 0.12, 2),
         };
 
         // the root collar everything grows from

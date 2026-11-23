@@ -55,6 +55,8 @@ import com.sk89q.worldedit.command.HistoryCommands;
 import com.sk89q.worldedit.command.HistoryCommandsRegistration;
 import com.sk89q.worldedit.command.LandscapeCommands;
 import com.sk89q.worldedit.command.LandscapeCommandsRegistration;
+import com.sk89q.worldedit.command.NatureCommands;
+import com.sk89q.worldedit.command.NatureCommandsRegistration;
 import com.sk89q.worldedit.command.NavigationCommands;
 import com.sk89q.worldedit.command.NavigationCommandsRegistration;
 import com.sk89q.worldedit.command.PaintBrushCommands;
@@ -72,10 +74,14 @@ import com.sk89q.worldedit.command.ShapeCommands;
 import com.sk89q.worldedit.command.ShapeCommandsRegistration;
 import com.sk89q.worldedit.command.ShapePresetCommands;
 import com.sk89q.worldedit.command.ShapePresetCommandsRegistration;
+import com.sk89q.worldedit.command.SkyscraperCommands;
+import com.sk89q.worldedit.command.SkyscraperCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotCommands;
 import com.sk89q.worldedit.command.SnapshotCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotUtilCommands;
 import com.sk89q.worldedit.command.SnapshotUtilCommandsRegistration;
+import com.sk89q.worldedit.command.StyleCommands;
+import com.sk89q.worldedit.command.StyleCommandsRegistration;
 import com.sk89q.worldedit.command.SuperPickaxeCommands;
 import com.sk89q.worldedit.command.SuperPickaxeCommandsRegistration;
 import com.sk89q.worldedit.command.TerrainPaintCommands;
@@ -476,6 +482,23 @@ public final class PlatformCommandManager {
             commandManager,
             WarpCommandsRegistration.builder(),
             new WarpCommands()
+        );
+        this.registration.register(
+            commandManager,
+            SkyscraperCommandsRegistration.builder(),
+            new SkyscraperCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/style",
+            ImmutableList.of("/buildingstyle"),
+            "List, show, save and delete building styles for //skyscraper",
+            StyleCommandsRegistration.builder(),
+            new StyleCommands()
+        );
+        this.registration.register(
+            commandManager,
+            NatureCommandsRegistration.builder(),
+            new NatureCommands(worldEdit)
         );
         this.registration.register(
             commandManager,

@@ -160,7 +160,7 @@ public final class Skyscraper {
     }
 
     private static final int[][] RING = {
-        {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}
+        {-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0},
     };
 
     private final String family;
