@@ -238,19 +238,19 @@ public final class PolyWalkManager {
      *
      * @param actor the walker
      * @param walk the walk (already removed or not)
-     * @param yRange an explicit {@code {minY, maxY}}, or null to work it out from the walk and the build
+     * @param heightRange an explicit {@code {minY, maxY}}, or null to work it out from the walk and the build
      * @return the result
      */
-    public Finished finish(Actor actor, Walk walk, @Nullable int[] yRange) {
+    public Finished finish(Actor actor, Walk walk, @Nullable int[] heightRange) {
         remove(actor);
         PolyWalkPath path = walk.path;
         World world = walk.world;
         List<BlockVector2> outline = FootprintOutline.atLeastThreePoints(path.outline(pointLimit(actor)));
         int minY;
         int maxY;
-        if (yRange != null) {
-            minY = Math.min(yRange[0], yRange[1]);
-            maxY = Math.max(yRange[0], yRange[1]);
+        if (heightRange != null) {
+            minY = Math.min(heightRange[0], heightRange[1]);
+            maxY = Math.max(heightRange[0], heightRange[1]);
         } else {
             minY = path.getLowestY() - GROUND_MARGIN;
             int top = PolyWalkPath.highestBlockInside(outline, path.getLowestY(), world.getMaxY(),

@@ -64,13 +64,16 @@ class FootprintOutlineTest {
     }
 
     @Test
-    void lShapeIsConcave() {
+    void theLShapeIsConcave() {
         // a 10x10 square with the 6x6 corner at high x / high z missing
         List<BlockVector2> cells = new ArrayList<>(rect(0, 0, 9, 3));
         cells.addAll(rect(0, 4, 3, 9));
         FootprintOutline footprint = FootprintOutline.of(cells);
         List<BlockVector2> outline = footprint.trace();
-        assertEquals(6, outline.size());
+        // 5 outer corners, and the inner corner is cut diagonally (4,3)-(3,4), which still contains (3,3)
+        assertEquals(7, outline.size());
+        assertTrue(inside(outline, 3, 3));
+        assertFalse(inside(outline, 4, 4));
         assertEquals(0, footprint.countOutside(outline));
         // the missing corner is not selected: the outline is concave
         assertFalse(inside(outline, 8, 8));
@@ -83,14 +86,14 @@ class FootprintOutlineTest {
     }
 
     @Test
-    void uShapeIsConcave() {
+    void theUShapeIsConcave() {
         // a U: two arms joined at low z, open at high z
         List<BlockVector2> cells = new ArrayList<>(rect(0, 0, 11, 2));
         cells.addAll(rect(0, 3, 2, 11));
         cells.addAll(rect(9, 3, 11, 11));
         FootprintOutline footprint = FootprintOutline.of(cells);
         List<BlockVector2> outline = footprint.trace();
-        assertEquals(8, outline.size());
+        assertEquals(10, outline.size());
         assertEquals(0, footprint.countOutside(outline));
         assertFalse(inside(outline, 6, 8));
         assertFalse(inside(outline, 5, 11));

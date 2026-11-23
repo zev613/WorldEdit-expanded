@@ -44,7 +44,9 @@ public final class BlockPosSet {
         void accept(int x, int y, int z);
     }
 
-    /** The largest bounding box {@link #toVoxelGrid(BlockVector3)} accepts. */
+    /**
+     * The largest bounding box {@link #toVoxelGrid(BlockVector3)} accepts.
+     */
     public static final long MAX_GRID_VOLUME = 1L << 29;
 
     private static final int SECTION_BITS = 4;

@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit.command;
 
+import com.google.common.base.Splitter;
 import com.sk89q.worldedit.LocalConfiguration;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.WorldEdit;
@@ -59,6 +60,7 @@ import org.enginehub.piston.annotation.param.Switch;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
@@ -296,14 +298,15 @@ public class SmartSelectionCommands {
         }
         Vector3 position;
         if (!rest.isEmpty()) {
-            String[] parts = String.join(",", rest).split("[,\\s]+");
-            if (parts.length != 3) {
+            List<String> parts = Splitter.on(Pattern.compile("[,\\s]+")).omitEmptyStrings()
+                .splitToList(String.join(",", rest));
+            if (parts.size() != 3) {
                 actor.printError(TextComponent.of("Give the point as x,y,z."));
                 return;
             }
             try {
-                position = Vector3.at(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]),
-                    Double.parseDouble(parts[2]));
+                position = Vector3.at(Double.parseDouble(parts.get(0)), Double.parseDouble(parts.get(1)),
+                    Double.parseDouble(parts.get(2)));
             } catch (NumberFormatException _) {
                 actor.printError(TextComponent.of("Give the point as x,y,z numbers."));
                 return;
@@ -313,7 +316,7 @@ public class SmartSelectionCommands {
         } else {
             try {
                 position = session.getPlacementPosition(actor).toVector3();
-            } catch (WorldEditException e) {
+            } catch (WorldEditException _) {
                 actor.printError(TextComponent.of("Set //pos1 or give the point as x,y,z."));
                 return;
             }
@@ -352,12 +355,12 @@ public class SmartSelectionCommands {
         }
         int[] yRange = null;
         if (!heightRange.isEmpty()) {
-            String[] parts = heightRange.split(",");
+            List<String> parts = Splitter.on(',').trimResults().splitToList(heightRange);
             try {
-                if (parts.length != 2) {
+                if (parts.size() != 2) {
                     throw new NumberFormatException();
                 }
-                yRange = new int[] {Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim())};
+                yRange = new int[] {Integer.parseInt(parts.get(0)), Integer.parseInt(parts.get(1))};
             } catch (NumberFormatException _) {
                 actor.printError(TextComponent.of("-y needs the height range as min,max, e.g. -y 60,90."));
                 return;
