@@ -190,7 +190,8 @@ public final class RuinGenerator {
         for (int y = box.minY(); y <= box.maxY(); y++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 for (int x = box.minX(); x <= box.maxX(); x++) {
-                    if (!isBuild(x, y, z) || !grid.isStructural(x, y, z)) {
+                    // natural blocks (a dirt ledge, a rock) stay
+                    if (!isBuild(x, y, z) || !grid.isStructural(x, y, z) || grid.isTerrain(x, y, z)) {
                         continue;
                     }
                     double h = height(y);
@@ -220,7 +221,7 @@ public final class RuinGenerator {
         for (int y = box.minY(); y <= box.maxY(); y++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 for (int x = box.minX(); x <= box.maxX(); x++) {
-                    if (!isBuild(x, y, z) || grid.isAir(x, y, z)) {
+                    if (!isBuild(x, y, z) || grid.isAir(x, y, z) || grid.isTerrain(x, y, z)) {
                         continue;
                     }
                     AgeBlock block = grid.get(x, y, z);
