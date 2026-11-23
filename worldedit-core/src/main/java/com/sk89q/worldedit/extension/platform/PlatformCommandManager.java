@@ -66,6 +66,10 @@ import com.sk89q.worldedit.command.ScriptingCommands;
 import com.sk89q.worldedit.command.ScriptingCommandsRegistration;
 import com.sk89q.worldedit.command.SelectionCommands;
 import com.sk89q.worldedit.command.SelectionCommandsRegistration;
+import com.sk89q.worldedit.command.ShapeCommands;
+import com.sk89q.worldedit.command.ShapeCommandsRegistration;
+import com.sk89q.worldedit.command.ShapePresetCommands;
+import com.sk89q.worldedit.command.ShapePresetCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotCommands;
 import com.sk89q.worldedit.command.SnapshotCommandsRegistration;
 import com.sk89q.worldedit.command.SnapshotUtilCommands;
@@ -93,6 +97,7 @@ import com.sk89q.worldedit.command.argument.EntityRemoverConverter;
 import com.sk89q.worldedit.command.argument.EnumConverter;
 import com.sk89q.worldedit.command.argument.FactoryConverter;
 import com.sk89q.worldedit.command.argument.HeightConverter;
+import com.sk89q.worldedit.command.argument.NamedShapeConverter;
 import com.sk89q.worldedit.command.argument.OffsetConverter;
 import com.sk89q.worldedit.command.argument.RegionFactoryConverter;
 import com.sk89q.worldedit.command.argument.RegistryConverter;
@@ -239,6 +244,7 @@ public final class PlatformCommandManager {
         ZonedDateTimeConverter.register(commandManager);
         BooleanConverter.register(commandManager);
         EntityRemoverConverter.register(commandManager);
+        NamedShapeConverter.register(commandManager);
         RegionFactoryConverter.register(commandManager);
         WorldConverter.register(commandManager);
         SideEffectConverter.register(commandManager);
@@ -442,6 +448,18 @@ public final class PlatformCommandManager {
             commandManager,
             ScriptingCommandsRegistration.builder(),
             new ScriptingCommands(worldEdit)
+        );
+        this.registration.register(
+            commandManager,
+            ShapeCommandsRegistration.builder(),
+            new ShapeCommands(worldEdit)
+        );
+        registerSubCommands(
+            "/shapedef",
+            ImmutableList.of("/shapepreset"),
+            "Save shapes with your own settings under a new name",
+            ShapePresetCommandsRegistration.builder(),
+            new ShapePresetCommands()
         );
         this.registration.register(
             commandManager,
